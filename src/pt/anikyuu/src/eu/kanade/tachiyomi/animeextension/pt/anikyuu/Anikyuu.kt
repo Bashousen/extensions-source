@@ -1,10 +1,9 @@
 package eu.kanade.tachiyomi.animeextension.pt.anikyuu
 
 import android.util.Log
-import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.ByseExtractor
-import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.StrmupExtractor
+import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.EmTurboExtractor
+import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.MoonExtractor
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.lib.filemoonextractor.FilemoonExtractor
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
 
 class Anikyuu : AnimeStream(
@@ -22,16 +21,21 @@ class Anikyuu : AnimeStream(
 
     // ============================ Video Links =============================
 
-    private val byseExtractor by lazy { ByseExtractor(client, headers, baseUrl) }
-    private val filemoonExtractor by lazy { FilemoonExtractor(client) }
-    private val strmupExtractor by lazy { StrmupExtractor(client, headers) }
+    private val moonExtractor by lazy { MoonExtractor(client, headers, baseUrl) }
+    private val emTurboExtractor by lazy { EmTurboExtractor(client, headers) }
+
     override fun getVideoList(url: String, name: String): List<Video> {
         Log.d(tag, "Fetching videos from: $url")
 
         return when {
-            "filemoon" in url -> filemoonExtractor.videosFromUrl(url)
-            "strmup.to" in url -> strmupExtractor.videosFromUrl(url)
-            "byselapuix.com" in url -> byseExtractor.videosFromUrl(url)
+            listOf(
+                "filemoon",
+                "byselapuix",
+            ).any(url::contains) -> {
+                val url = if (url.count { it == '/' } > 4) url.substringBeforeLast("/") else url
+                moonExtractor.videosFromUrl(url, "$name - ")
+            }
+            "turbovidhls.com" in url -> emTurboExtractor.getVideos(url)
 
             else -> emptyList()
         }
