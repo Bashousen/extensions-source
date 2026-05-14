@@ -131,7 +131,7 @@ class M3u8HttpServer(
         session.headers.forEach { (key, value) ->
             when (key.lowercase()) {
                 "user-agent", "referer", "origin", "accept", "accept-language",
-                "accept-encoding", "connection", "cache-control", "pragma" -> {
+                "connection", "cache-control", "pragma" -> {
                     headers[key] = value
                 }
             }
@@ -281,7 +281,7 @@ class M3u8HttpServer(
                 line.isNotBlank() && !line.startsWith("#") -> {
                     // This is a segment URL
                     val encodedUrl = URLEncoder.encode(line, StandardCharsets.UTF_8.name())
-                    val localUrl = "http://localhost:$serverPort/segment?url=$encodedUrl"
+                    val localUrl = "http://127.0.0.1:$serverPort/segment?url=$encodedUrl"
                     modifiedLines.add(localUrl)
                     segmentCount++
                 }

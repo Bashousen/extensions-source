@@ -48,7 +48,7 @@ class M3u8ServerManager {
      * Gets the server base URL
      */
     fun getServerUrl(): String? {
-        return server?.let { "http://localhost:${it.port}" }
+        return server?.let { "http://127.0.0.1:${it.port}" }
     }
 
     /**
