@@ -37,7 +37,6 @@ class M3u8Integration(
      */
     private fun processM3u8Video(originalVideo: Video): Video {
         val serverUrl = serverManager.getServerUrl() ?: return originalVideo
-
         val encodedUrl = URLEncoder.encode(originalVideo.url, "UTF-8")
         val proxiedUrl = "$serverUrl/m3u8/playlist.m3u8?url=$encodedUrl"
 
