@@ -2,16 +2,17 @@ package eu.kanade.tachiyomi.animeextension.pt.betteranimeio
 
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
-import kotlinx.serialization.json.Json
+import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Element
-import uy.kohesive.injekt.injectLazy
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -21,10 +22,6 @@ class BetterAnimeIo : DooPlay(
     "https://betteranime.io",
 ) {
     private val contentUrl = "$baseUrl/animes"
-
-    private val json: Json by injectLazy()
-
-    private val extractor by lazy { BetterAnimeIoExtractor(client, json) }
 
     // ============================== Popular ===============================
     override fun popularAnimeSelector() = "div#featured-titles article.item div.poster"
@@ -78,6 +75,8 @@ class BetterAnimeIo : DooPlay(
     override fun genresListSelector() = "nav.genres ul.genres li a"
 
     // ============================ Video Links =============================
+    private val bloggerExtractor by lazy { BloggerExtractor(client) }
+
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
         val players = document.select("ul#playeroptionsul li")
@@ -85,34 +84,33 @@ class BetterAnimeIo : DooPlay(
     }
 
     private fun getPlayerVideos(player: Element): List<Video> {
-        val url = getPlayerUrl(player)
+        val url = getPlayerUrl(player) ?: return emptyList()
         if (url.isEmpty()) return emptyList()
 
         return when {
             "jwplayer?source=" in url || "jwplayer/?source=" in url -> {
-                val encodedSource = url.toHttpUrl().queryParameter("source") ?: return emptyList()
-                extractor.extractVideosFromApi(encodedSource)
+                val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
+
+                bloggerExtractor.videosFromUrl(videoUrl, headers)
             }
             else -> emptyList()
         }
     }
 
-    private fun getPlayerUrl(player: Element): String {
-        val type = player.attr("data-type")
-        val id = player.attr("data-post")
-        val num = player.attr("data-nume")
-        return try {
-            client.newCall(GET("$baseUrl/wp-json/dooplayer/v2/$id/$type/$num", headers))
-                .execute()
-                .use { response ->
-                    response.body.string()
-                        .substringAfter("\"embed_url\":\"")
-                        .substringBefore("\",")
-                        .replace("\\", "")
-                }
-        } catch (e: Exception) {
-            ""
-        }
+    private fun getPlayerUrl(player: Element): String? {
+        val body = FormBody.Builder()
+            .add("action", "doo_player_ajax")
+            .add("post", player.attr("data-post"))
+            .add("nume", player.attr("data-nume"))
+            .add("type", player.attr("data-type"))
+            .build()
+
+        return client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
+            .execute().body.string()
+            .substringAfter("\"embed_url\":\"")
+            .substringBefore("\",")
+            .replace("\\", "")
+            .takeIf(String::isNotBlank)
     }
 
     // ============================= Utilities ==============================
