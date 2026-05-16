@@ -133,11 +133,13 @@ class AnimesROLL : DooPlay(
             .add("type", player.attr("data-type"))
             .build()
 
-        return client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
+        fun urlPostCall(baseUrl: String) = client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
             .execute().body.string()
             .substringAfter("\"embed_url\":\"")
             .substringBefore("\",")
             .replace("\\", "")
+
+        return urlPostCall(baseUrl).ifEmpty { urlPostCall("https://anroll.site") }
     }
 
     // ============================== Filters ===============================
