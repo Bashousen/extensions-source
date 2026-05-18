@@ -42,13 +42,14 @@ class VoeExtractor(private val client: OkHttpClient, private val headers: Header
         val mp4 = decryptedJson["direct_access_url"]?.jsonPrimitive?.content
 
         if (m3u8 != null) {
-            playlistUtils.extractFromHls(m3u8,
-                videoNameGen = { quality -> "${prefix}Voe:$quality" }
+            playlistUtils.extractFromHls(
+                m3u8,
+                videoNameGen = { quality -> "${prefix}Voe: $quality" },
             ).let { videoList.addAll(it) }
         }
         if (mp4 != null) {
             videoList.add(
-                Video(mp4, "${prefix}Voe:MP4", mp4)
+                Video(mp4, "${prefix}Voe: MP4", mp4),
             )
         }
 

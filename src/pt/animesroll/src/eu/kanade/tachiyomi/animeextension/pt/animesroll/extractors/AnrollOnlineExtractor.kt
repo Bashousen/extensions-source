@@ -1,6 +1,6 @@
 package eu.kanade.tachiyomi.animeextension.pt.animesroll.extractors
 
-import dev.datlag.jsunpacker.JsUnpacker
+// import dev.datlag.jsunpacker.JsUnpacker
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
@@ -14,7 +14,7 @@ class AnrollOnlineExtractor(private val client: OkHttpClient) {
         val doc = client.newCall(GET(url)).execute().asJsoup()
 
         val script = doc.selectFirst("script:containsData(eval):containsData(p,a,c,k,e,d)")?.data()
-            ?.let(JsUnpacker::unpackAndCombine)
+            // ?.let(JsUnpacker::unpackAndCombine)
             ?: return emptyList()
 
         val kaken = script.substringAfter("kaken", "")

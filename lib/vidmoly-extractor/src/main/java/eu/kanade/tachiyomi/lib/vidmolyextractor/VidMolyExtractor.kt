@@ -10,7 +10,7 @@ import okhttp3.internal.EMPTY_HEADERS
 
 class VidMolyExtractor(private val client: OkHttpClient, headers: Headers = EMPTY_HEADERS) {
 
-    private val baseUrl = "https://vidmoly.to"
+    private val baseUrl = "https://vidmoly.biz"
 
     private val playlistUtils by lazy { PlaylistUtils(client) }
 
@@ -19,8 +19,8 @@ class VidMolyExtractor(private val client: OkHttpClient, headers: Headers = EMPT
         .set("Referer", "$baseUrl/")
         .build()
 
-    private val sourcesRegex = Regex("sources: (.*?]),")
-    private val urlsRegex = Regex("""file:"(.*?)"""")
+    private val sourcesRegex = Regex("sources: ?(.*?]),")
+    private val urlsRegex = Regex(""" ?file: ?'(.*?)'""") // " ?file: ?(['"])(.*?)\1"
 
     fun videosFromUrl(url: String, prefix: String = ""): List<Video> {
         val document = client.newCall(
@@ -30,8 +30,9 @@ class VidMolyExtractor(private val client: OkHttpClient, headers: Headers = EMPT
         val sources = sourcesRegex.find(script)!!.groupValues[1]
         val urls = urlsRegex.findAll(sources).map { it.groupValues[1] }.toList()
         return urls.flatMap {
-            playlistUtils.extractFromHls(it,
-                videoNameGen = { quality -> "${prefix}VidMoly - $quality" },
+            playlistUtils.extractFromHls(
+                it,
+                videoNameGen = { quality -> "${prefix}VidMoly: $quality" },
                 masterHeaders = headers,
                 videoHeaders = headers,
             )
