@@ -1,11 +1,11 @@
 package eu.kanade.tachiyomi.animeextension.pt.animesroll
 
 import android.util.Log
-import eu.kanade.tachiyomi.animeextension.pt.animesroll.extractors.AnrollOnlineExtractor
-import eu.kanade.tachiyomi.animeextension.pt.animesroll.extractors.UniversalExtractor
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.vidmolyextractor.VidMolyExtractor
+import eu.kanade.tachiyomi.lib.voeextractor.VoeExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
@@ -97,25 +97,21 @@ class AnimesROLL : DooPlay(
     override val prefQualityValues = arrayOf("360p", "480p", "720p", "1080p")
     override val prefQualityEntries = prefQualityValues
 
-    private val anrollOnlineExtractor by lazy { AnrollOnlineExtractor(client) }
-    private val universalExtractor by lazy { UniversalExtractor(client) }
+    private val vidmolyExtractor by lazy { VidMolyExtractor(client, headers) }
+    private val voeExtractor by lazy { VoeExtractor(client, headers) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
-        val fullName = player.selectFirst("span.title")!!.text()
-        val realName = fullName.substringAfter("(").substringBefore(")")
+        // val fullName = player.selectFirst("span.title")!!.text()
+        // val realName = fullName.substringAfter("(").substringBefore(")")
         val url = getPlayerUrl(player) ?: return emptyList()
         Log.d(tag, "Fetching videos from: $url")
 
         var videos: List<Video> = when {
-            "anroll.online" in url -> anrollOnlineExtractor.videosFromUrl(url, realName)
+            "vidmoly" in url -> vidmolyExtractor.videosFromUrl(url)
+
+            "voe" in url -> voeExtractor.videosFromUrl(url)
 
             else -> emptyList()
-        }
-
-        if (videos.isEmpty()) {
-            Log.d(tag, "Videos are empty, fetching videos from using universal extractor: $url")
-            val newHeaders = headers.newBuilder().set("Referer", baseUrl).build()
-            videos = universalExtractor.videosFromUrl(url, newHeaders, realName)
         }
 
         if (videos.isEmpty()) {
