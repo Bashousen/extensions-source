@@ -7,7 +7,8 @@ import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import eu.kanade.tachiyomi.util.parallelFlatMapBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -76,13 +77,12 @@ class AnimePlayer : DooPlay(
     override val prefQualityValues = arrayOf("360p", "720p")
     override val prefQualityEntries = prefQualityValues
 
+    private val bloggerExtractor by lazy { BloggerExtractor(client) }
+
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
-        val playerUrl = document
-            .selectFirst("div.playex iframe")
-            ?.absUrl("src")
-            ?.toHttpUrlOrNull()
-            ?: return emptyList()
+        val urls = document.select(".player-placeholder").eachAttr("data-src")
+            .map { it.toHttpUrl().queryParameter("link") ?: it }.distinct()
 
         val quality = document
             .selectFirst("span.qualityx")
@@ -90,21 +90,32 @@ class AnimePlayer : DooPlay(
             ?.substringAfterLast(" ")
             ?: "Default"
 
-        val url = playerUrl.queryParameter("link") ?: playerUrl.toString()
-        return getVideosFromURL(url, quality)
-    }
+        return urls.parallelFlatMapBlocking { url ->
+            when {
+                ".mp4" in url -> {
+                    listOf(
+                        Video(url, quality, url, headers),
+                    )
+                }
 
-    private val bloggerExtractor by lazy { BloggerExtractor(client) }
-    private fun getVideosFromURL(url: String, quality: String): List<Video> {
-        return when {
-            "cdn.animeson.com.br" in url -> {
-                listOf(
-                    Video(url, quality, url, headers),
-                )
+                "api/index.php?token" in url -> {
+                    val sourcesRegex = Regex("sources: (.*?]),")
+                    val urlsRegex = Regex("""file"?:"(.*?)"""")
+
+                    val document = client.newCall(GET(url, headers)).execute().asJsoup()
+                    val script = document.selectFirst("script:containsData(sources)")!!.data()
+
+                    val sources = sourcesRegex.find(script)!!.groupValues[1]
+                    val url = urlsRegex.find(sources)!!.groupValues[1]
+                        .let {
+                            "https://$it".toHttpUrl().queryParameter("src")!!
+                        }
+
+                    bloggerExtractor.videosFromUrl(url, headers)
+                }
+
+                else -> emptyList()
             }
-
-            "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
-            else -> emptyList()
         }
     }
 
