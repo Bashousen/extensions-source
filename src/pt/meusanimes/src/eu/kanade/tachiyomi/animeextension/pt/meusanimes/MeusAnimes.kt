@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.animeextension.pt.meusanimes
 
+import android.util.Log
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -8,6 +9,7 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -22,7 +24,7 @@ class MeusAnimes : AnimeHttpSource() {
     override val name = "Meus Animes"
     override val baseUrl = "https://meusanimes.vip"
     override val lang = "pt-BR"
-    override val supportsLatest = false
+    override val supportsLatest = true
 
     override val client: OkHttpClient = OkHttpClient()
 
@@ -73,11 +75,30 @@ class MeusAnimes : AnimeHttpSource() {
     }
 
     // Latest updates use same parsing as popular
-    override fun latestUpdatesParse(response: Response): AnimesPage =
-        popularAnimeParse(response)
+    override fun latestUpdatesParse(response: Response): AnimesPage {
+        val jsonString = response.body.string()
+        val json = Json.decodeFromString<Data>(jsonString)
+
+        val animes = json.data.map { anime ->
+            SAnime.create().apply {
+                title = "${anime.animeName} ${anime.name}"
+                url = "/episodio/${anime.slug}/"
+                thumbnail_url = anime.background
+                    .takeIf { !it.isNullOrBlank() }
+                    ?.let { "https://image.tmdb.org/t/p/w500$it" }
+                    ?: "https://image.tmdb.org/t/p/w500${anime.animePoster}"
+
+                initialized = true
+            }
+        }
+
+        val hasNextPage = json.pagination.page <= json.pagination.totalPages
+
+        return AnimesPage(animes, hasNextPage)
+    }
 
     override fun latestUpdatesRequest(page: Int): Request =
-        popularAnimeRequest(page)
+        GET("$baseUrl/api/public/recent-episodes?page=$page", headers)
 
     // Parse search results from API
     override fun searchAnimeParse(response: Response): AnimesPage {
@@ -247,7 +268,9 @@ class MeusAnimes : AnimeHttpSource() {
     // Episodes: Parse episode list from JSON data
     override fun episodeListParse(response: Response): List<SEpisode> {
         val document = response.asJsoup()
+        Log.d("episodeList DOC:", "${document.title()}")
         val json = extractAnimeData(document) ?: return emptyList()
+        Log.d("episodeList JSON:", "$json")
         val episodes = json.optJSONArray("Episode") ?: return emptyList()
 
         return (0 until episodes.length())
