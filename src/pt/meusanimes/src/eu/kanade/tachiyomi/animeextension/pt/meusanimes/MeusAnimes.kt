@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.animeextension.pt.meusanimes
 
-import android.util.Log
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -68,10 +67,7 @@ class MeusAnimes : AnimeHttpSource() {
                 }
             }
 
-        // Simple pagination check
-        val hasNextPage = animes.isNotEmpty()
-
-        return AnimesPage(animes, hasNextPage)
+        return AnimesPage(animes, false)
     }
 
     // Latest updates use same parsing as popular
@@ -82,13 +78,13 @@ class MeusAnimes : AnimeHttpSource() {
         val animes = json.data.map { anime ->
             SAnime.create().apply {
                 title = "${anime.animeName} ${anime.name}"
-                url = "/episodio/${anime.slug}/"
+                url = "/anime/${anime.animeSlug}/"
                 thumbnail_url = anime.background
                     .takeIf { !it.isNullOrBlank() }
                     ?.let { "https://image.tmdb.org/t/p/w500$it" }
                     ?: "https://image.tmdb.org/t/p/w500${anime.animePoster}"
 
-                initialized = true
+                initialized = false
             }
         }
 
@@ -141,7 +137,7 @@ class MeusAnimes : AnimeHttpSource() {
             if (startIdx == -1) return null
 
             val jsonStart = startIdx + startToken.length - 1
-            val endIdx = scriptContent.indexOf("]}", jsonStart) + 2
+            val endIdx = scriptContent.indexOf("]}}]", jsonStart) + 2
 
             val fragment = scriptContent.substring(jsonStart, endIdx)
 
@@ -268,9 +264,7 @@ class MeusAnimes : AnimeHttpSource() {
     // Episodes: Parse episode list from JSON data
     override fun episodeListParse(response: Response): List<SEpisode> {
         val document = response.asJsoup()
-        Log.d("episodeList DOC:", "${document.title()}")
         val json = extractAnimeData(document) ?: return emptyList()
-        Log.d("episodeList JSON:", "$json")
         val episodes = json.optJSONArray("Episode") ?: return emptyList()
 
         return (0 until episodes.length())
