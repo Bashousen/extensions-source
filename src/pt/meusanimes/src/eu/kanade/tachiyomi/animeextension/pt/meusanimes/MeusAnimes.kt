@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
+import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import kotlinx.serialization.json.Json
@@ -15,8 +16,6 @@ import okhttp3.Response
 import org.json.JSONObject
 import org.jsoup.nodes.Document
 import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 class MeusAnimes : AnimeHttpSource() {
 
@@ -26,18 +25,6 @@ class MeusAnimes : AnimeHttpSource() {
     override val supportsLatest = true
 
     override val client: OkHttpClient = OkHttpClient()
-
-    // RegEx patterns to extract video player URLs
-    private val playerLegRegex = """ "player_leg"\s*:\s*"(https://www\.blogger\.com/video\.g\?token=[^"]+)""".toRegex()
-    private val playerDubRegex = """ "player_dub"\s*:\s*"(https://www\.blogger\.com/video\.g\?token=[^"]+)""".toRegex()
-
-    override fun headersBuilder() = super.headersBuilder()
-        .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .add("Referer", baseUrl)
-
-    private val dateFormat by lazy {
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-    }
 
     // Requests: Popular anime request
     override fun popularAnimeRequest(page: Int): Request =
@@ -286,59 +273,21 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Parse video list from episode page
     override fun videoListParse(response: Response): List<Video> {
+        val bloggerExtractor by lazy { BloggerExtractor(client) }
         val html = response.body.string()
-        val videoList = mutableListOf<Video>()
-        val extractor = BloggerExtractor(client)
-
-        // 1. Clean HTML: remove JSON escapes for cleaner URLs
-        val cleanHtml = html.replace("\\/", "/")
-            .replace("\\u0026", "&")
-
-        val browserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0"
-        val googleHeaders = headersBuilder()
-            .set("User-Agent", browserUserAgent)
-            .set("Referer", "https://youtube.googleapis.com/")
-            .build()
+        val slug = response.request.url.pathSegments[1]
 
         // 2. Enhanced regex to capture links anywhere in JSON
-        val legRegex = """player_leg"\s*:\s*"([^"]+)""".toRegex()
-        val dubRegex = """player_dub"\s*:\s*"([^"]+)""".toRegex()
+        val videoRegex = """\\"$slug\\",\\"player_leg\\":\\"([^\\]*)\\",\\"player_dub\\":\\"([^\\]*)""".toRegex()
+        val groups = videoRegex.find(html)?.groupValues ?: return emptyList()
+        val legMatch = groups[1].takeIf { it.isNotEmpty() }
+        val dubMatch = groups[2].takeIf { it.isNotEmpty() }
 
-        val legMatch = legRegex.find(cleanHtml)?.groupValues?.get(1)
-        val dubMatch = dubRegex.find(cleanHtml)?.groupValues?.get(1)
+        return listOfNotNull(legMatch, dubMatch)
+            .flatMap { url ->
+                val suffix = "Legendado".takeIf { url == legMatch } ?: "Dublado"
 
-        // Helper function to add videos from URL
-        fun addVideos(url: String, prefix: String) {
-            if (url.isEmpty() || !url.contains("blogger.com")) return
-
-            runCatching {
-                extractor.videosFromUrl(url, googleHeaders).forEach { video ->
-                    videoList.add(
-                        Video(
-                            video.url,
-                            "$prefix: ${video.quality}",
-                            video.videoUrl,
-                            googleHeaders,
-                        ),
-                    )
-                }
+                bloggerExtractor.videosFromUrl(url, headers, suffix)
             }
-        }
-
-        // Process Legendado (subtitled) and Dublado (dubbed) streams
-        legMatch?.let { addVideos(it, "Legendado") }
-        dubMatch?.let { addVideos(it, "Dublado") }
-
-        // 3. Fallback: if keys change, try to capture any loose blogger links
-        if (videoList.isEmpty()) {
-            val fallbackRegex = """https?://www\.blogger\.com/video\.g\?token=[a-zA-Z0-9_-]+""".toRegex()
-            fallbackRegex.findAll(cleanHtml)
-                .map { it.value }
-                .distinct()
-                .take(2)
-                .forEach { addVideos(it, "Player") }
-        }
-
-        return videoList
     }
 }
