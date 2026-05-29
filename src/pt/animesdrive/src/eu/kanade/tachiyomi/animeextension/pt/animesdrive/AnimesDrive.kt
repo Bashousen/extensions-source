@@ -60,21 +60,26 @@ class AnimesDrive : DooPlay(
     }
 
     // =========================== Anime Details ============================
-    override val additionalInfoSelector = "div.wp-content"
+    override val additionalInfoSelector = ".data div.wp-content"
 
     override fun Document.getDescription(): String {
-        return select("$additionalInfoSelector p")
-            .first { !it.text().contains("Título Alternativo") }
-            ?.let { it.text() + "\n" }
-            ?: ""
+        return select("$additionalInfoSelector p").let { list ->
+            if (list.size == 1) {
+                "\n\n" + list[0].text() + "\n\n"
+            } else "\n\n" + list[1].text() + "\n\n"
+        }
     }
 
     fun Document.getAlternativeTitle(): String {
-        return select("$additionalInfoSelector p")
-            .first { it.text().contains("Título Alternativo") }
-            ?.let { it.text() + "\n" }
-            ?: ""
+        return select("$additionalInfoSelector p").let { list ->
+            if (list.size < 2) {
+                return ""
+            } else list[0].text() + "\n"
+        }
     }
+
+    override val additionalInfoItems: List<String> =
+        listOf("Título", "Temporada", "Episódios", "Data de Lançamento", "Data de Finalização")
 
     override fun animeDetailsParse(document: Document): SAnime {
         val doc = getRealAnimeDoc(document)
@@ -95,11 +100,11 @@ class AnimesDrive : DooPlay(
             // description = doc.getDescription()
             doc.selectFirst("div#info")?.let { info ->
                 description = buildString {
-                    append(doc.getDescription())
-                    append(doc.getAlternativeTitle())
                     additionalInfoItems.forEach {
                         info.getInfo(it)?.let(::append)
                     }
+                    append(doc.getDescription())
+                    append(doc.getAlternativeTitle())
                 }
             }
         }
