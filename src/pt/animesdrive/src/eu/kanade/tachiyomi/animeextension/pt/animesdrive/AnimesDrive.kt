@@ -4,6 +4,7 @@ import eu.kanade.tachiyomi.animeextension.pt.animesdrive.extractors.UniversalExt
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.SAnime
+import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
@@ -101,6 +102,32 @@ class AnimesDrive : DooPlay(
                     }
                 }
             }
+        }
+    }
+
+    // ============================== Episodes ==============================
+
+    override fun episodeListSelector(): String = ".episodios-grid > .episode-card"
+
+    override fun getSeasonEpisodes(season: Element): List<SEpisode> {
+        if (season.selectFirst("span")!!.text().toIntOrNull() == null) return emptyList()
+
+        return season.select(episodeListSelector()).mapNotNull { element ->
+            runCatching {
+                episodeFromElement(element)
+            }.onFailure { it.printStackTrace() }.getOrNull()
+        }
+    }
+
+    override fun episodeFromElement(element: Element): SEpisode {
+        return SEpisode.create().apply {
+            val epName = element.attr("data-episode-title")
+
+            setUrlWithoutDomain(element.selectFirst("a")!!.attr("href"))
+            episode_number = element.attr("data-episode-number").toFloat()
+            name = epName.takeIf { it.contains("""Epis[oó]dio""".toRegex()) }
+                ?: "Episódio ${episode_number.toInt()} - $epName"
+            date_upload = 0L
         }
     }
 
