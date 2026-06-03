@@ -63,19 +63,23 @@ class AnimesDrive : DooPlay(
     override val additionalInfoSelector = ".data div.wp-content"
 
     override fun Document.getDescription(): String {
-        return select("$additionalInfoSelector p").let { list ->
-            if (list.size == 1) {
-                "\n\n" + list[0].text() + "\n\n"
-            } else "\n\n" + list[1].text() + "\n\n"
-        }
+        return try {
+            select("$additionalInfoSelector p").let { list ->
+                if (list.size == 1) {
+                    "\n\n" + list[0].text() + "\n\n"
+                } else "\n\n" + list[1].text() + "\n\n"
+            }
+        } catch (e: Exception) { "" }
     }
 
     fun Document.getAlternativeTitle(): String {
-        return select("$additionalInfoSelector p").let { list ->
-            if (list.size < 2) {
-                return ""
-            } else list[0].text() + "\n"
-        }
+        return try {
+            select("$additionalInfoSelector p").let { list ->
+                if (list.size < 2) {
+                    return ""
+                } else list[0].text() + "\n"
+            }
+        } catch (e: Exception) { "" }
     }
 
     override val additionalInfoItems: List<String> =
@@ -163,13 +167,17 @@ class AnimesDrive : DooPlay(
         val videos = when {
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
             "jwplayer?source=" in url -> {
-                val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
+                val url = url.toHttpUrl()
+
+                val videoUrl = url.queryParameter("source")?.takeIf {
+                    it.toHttpUrl().host !in listOf("cld.pt", "mangas.cloud")
+                } ?: return emptyList()
 
                 val videoHeaders = headers.newBuilder()
                     .add("Accept", "*/*")
                     .add("Host", videoUrl.toHttpUrl().host)
-                    .add("Origin", "https://${url.toHttpUrl().host}")
-                    .add("Referer", "https://${url.toHttpUrl().host}/")
+                    .add("Origin", "https://${url.host}")
+                    .add("Referer", "https://${url.host}/")
                     .build()
 
                 return listOf(
