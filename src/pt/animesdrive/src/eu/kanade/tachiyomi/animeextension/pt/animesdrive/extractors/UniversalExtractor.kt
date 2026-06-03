@@ -12,10 +12,8 @@ import android.webkit.WebViewClient
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
 import okhttp3.Headers
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import uy.kohesive.injekt.injectLazy
-import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -27,7 +25,6 @@ class UniversalExtractor(private val client: OkHttpClient) {
     @SuppressLint("SetJavaScriptEnabled")
     fun videosFromUrl(origRequestUrl: String, origRequestHeader: Headers, name: String?): List<Video> {
         Log.d(tag, "Fetching videos from: $origRequestUrl")
-        val host = origRequestUrl.toHttpUrl().host.substringBefore(".").proper()
         val latch = CountDownLatch(1)
         var webView: WebView? = null
         var resultUrl = ""
@@ -76,7 +73,7 @@ class UniversalExtractor(private val client: OkHttpClient) {
             webView = null
         }
 
-        val prefix = name ?: host
+        val prefix = resultUrl.split("/")[8].substringBefore(".")
 
         return when {
             "m3u8" in resultUrl -> {
@@ -92,16 +89,6 @@ class UniversalExtractor(private val client: OkHttpClient) {
                 Video(resultUrl, "$prefix: MP4", resultUrl, Headers.headersOf("referer", origRequestUrl)).let(::listOf)
             }
             else -> emptyList()
-        }
-    }
-
-    private fun String.proper(): String {
-        return this.replaceFirstChar {
-            if (it.isLowerCase()) {
-                it.titlecase(
-                    Locale.getDefault(),
-                )
-            } else it.toString()
         }
     }
 
