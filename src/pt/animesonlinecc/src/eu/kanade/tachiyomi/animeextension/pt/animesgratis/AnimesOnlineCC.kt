@@ -20,9 +20,9 @@ class AnimesOnlineCC : DooPlay(
 ) {
 
     // ============================== Popular ===============================
-    override fun popularAnimeSelector() = "article.w_item_b > a"
+    override fun popularAnimeSelector() = "#archive-content > article"
 
-    override fun popularAnimeRequest(page: Int) = GET(baseUrl, headers)
+    override fun popularAnimeRequest(page: Int) = GET("$baseUrl/animes-mais-vistos/", headers)
 
     // =============================== Latest ===============================
     override fun latestUpdatesNextPageSelector() =
