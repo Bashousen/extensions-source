@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.animeextension.pt.meusanimes
 
+import android.util.Log
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -65,7 +66,7 @@ class MeusAnimes : AnimeHttpSource() {
         val animes = json.data.map { anime ->
             SAnime.create().apply {
                 title = "${anime.animeName} ${anime.name}"
-                url = "/anime/${anime.animeSlug}/"
+                url = "/episodio/${anime.slug}/"
                 thumbnail_url = anime.background
                     .takeIf { !it.isNullOrBlank() }
                     ?.let { "https://image.tmdb.org/t/p/w500$it" }
@@ -182,7 +183,7 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Main anime details parser
     override fun animeDetailsParse(response: Response): SAnime {
-        val document = response.asJsoup()
+        val document = getRealAnimeDoc(response.asJsoup())
         val json = extractAnimeData(document)
             ?: return parseAnimeFromMeta(document)
 
@@ -250,7 +251,7 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Episodes: Parse episode list from JSON data
     override fun episodeListParse(response: Response): List<SEpisode> {
-        val document = response.asJsoup()
+        val document = getRealAnimeDoc(response.asJsoup())
         val json = extractAnimeData(document) ?: return emptyList()
         val episodes = json.optJSONArray("Episode") ?: return emptyList()
 
@@ -289,5 +290,31 @@ class MeusAnimes : AnimeHttpSource() {
 
                 bloggerExtractor.videosFromUrl(url, headers, suffix)
             }
+    }
+
+    // ============================= Utilities ==============================
+
+    /**
+     * If the document comes from a episode page, this function will get the
+     * real/expected document from the anime details page. else, it will return the
+     * original document.
+     *
+     * @return A document from a anime details page.
+     */
+    private fun getRealAnimeDoc(document: Document): Document {
+        val url = document.location()
+        val regex = "-s[0-9]+-e[0-9]+".toRegex()
+
+        Log.d("getRealAnimeDoc", url)
+
+        return if ("/anime" !in url) {
+            val animeUrl = url
+                .replace("episodio", "anime")
+                .replace(regex, "")
+            val req = client.newCall(GET(animeUrl, headers)).execute()
+            req.asJsoup()
+        } else {
+            document
+        }
     }
 }
