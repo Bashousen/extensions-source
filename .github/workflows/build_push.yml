@@ -154,13 +154,13 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Checkout repo branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          repository: Bashousen/extensions-app  # ← aqui
-          ref: repo
-          path: repo
+          ref: main
+          path: main
           token: ${{ secrets.TOKEN_GITHUB }}
+
       - name: Create repo artifacts
         run: |
           cd main
@@ -173,6 +173,7 @@ jobs:
       - name: Checkout repo branch
         uses: actions/checkout@v4
         with:
+          repository: Bashousen/extensions-app
           ref: repo
           path: repo
           token: ${{ secrets.TOKEN_GITHUB }}
