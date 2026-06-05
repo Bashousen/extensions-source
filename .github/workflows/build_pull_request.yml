@@ -85,3 +85,4 @@ jobs:
         env:
           CI_CHUNK_NUM: ${{ matrix.chunk }}
         run: chmod +x ./gradlew && ./gradlew -p src assembleDebug
+
