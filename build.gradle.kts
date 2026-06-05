@@ -1,5 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-//TESTANDO
+
 buildscript {
     repositories {
         mavenCentral()
