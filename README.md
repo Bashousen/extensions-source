@@ -2,8 +2,6 @@
 
 Support this project by helping keep the servers up
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T3124BZN)
-
 ## Guide
 
 just paste this into your anime repo 
