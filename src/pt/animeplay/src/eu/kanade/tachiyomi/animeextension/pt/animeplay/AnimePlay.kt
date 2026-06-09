@@ -65,17 +65,21 @@ class AnimePlay : DooPlay(
     override val additionalInfoSelector = "div.wp-content"
 
     override fun Document.getDescription(): String {
-        return select("$additionalInfoSelector p")
-            .first { !it.text().contains("Título Alternativo") }
-            ?.let { it.text() + "\n" }
-            ?: ""
+        return runCatching {
+            select("$additionalInfoSelector p")
+                .first { !it.text().contains("Título Alternativo", ignoreCase = true) }
+                ?.let { it.text() + "\n" }
+                ?: ""
+        }.getOrElse { "" }
     }
 
     fun Document.getAlternativeTitle(): String {
-        return select("$additionalInfoSelector p")
-            .first { it.text().contains("Título Alternativo") }
-            ?.let { it.text() + "\n" }
-            ?: ""
+        return runCatching {
+            select("$additionalInfoSelector p")
+                .first { it.text().contains("Título Alternativo", ignoreCase = true) }
+                ?.let { it.text() + "\n" }
+                ?: ""
+        }.getOrElse { "" }
     }
 
     override fun animeDetailsParse(document: Document): SAnime {
