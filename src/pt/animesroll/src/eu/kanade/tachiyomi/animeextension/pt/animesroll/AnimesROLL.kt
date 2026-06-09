@@ -19,7 +19,7 @@ import org.jsoup.nodes.Element
 class AnimesROLL : DooPlay(
     "pt-BR",
     "Animes ROLL",
-    "https://anroll.tv",
+    "https://anroll.site",
 ) {
 
     private val tag by lazy { javaClass.simpleName }
@@ -101,12 +101,10 @@ class AnimesROLL : DooPlay(
     private val voeExtractor by lazy { VoeExtractor(client, headers) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
-        // val fullName = player.selectFirst("span.title")!!.text()
-        // val realName = fullName.substringAfter("(").substringBefore(")")
         val url = getPlayerUrl(player) ?: return emptyList()
         Log.d(tag, "Fetching videos from: $url")
 
-        var videos: List<Video> = when {
+        val videos: List<Video> = when {
             "vidmoly" in url -> vidmolyExtractor.videosFromUrl(url)
 
             "voe" in url -> voeExtractor.videosFromUrl(url)
@@ -129,13 +127,11 @@ class AnimesROLL : DooPlay(
             .add("type", player.attr("data-type"))
             .build()
 
-        fun urlPostCall(baseUrl: String) = client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
+        return client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
             .execute().body.string()
             .substringAfter("\"embed_url\":\"")
             .substringBefore("\",")
             .replace("\\", "")
-
-        return urlPostCall(baseUrl).ifEmpty { urlPostCall("https://anroll.site") }
     }
 
     // ============================== Filters ===============================

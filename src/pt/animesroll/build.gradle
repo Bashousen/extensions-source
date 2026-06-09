@@ -2,7 +2,7 @@ ext {
     extName = 'AnimesROLL'
     extClass = '.AnimesROLL'
     themePkg = 'dooplay'
-    baseUrl = 'https://anroll.tv'
+    baseUrl = 'https://anroll.site'
     overrideVersionCode = 9
 }
 
