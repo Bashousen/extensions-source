@@ -110,50 +110,27 @@ class AnimesROLL : DooPlay(
     }
 
     // ============================ Video Links =============================
-    override fun videoListParse(response: Response): List<Video> {
-        val document = response.asJsoup()
-        val players = document.select("ul#playeroptionsul li")
-        return players.parallelCatchingFlatMapBlocking(::getPlayerVideos)
-    }
-
     override val prefQualityValues = arrayOf("360p", "480p", "720p", "1080p")
     override val prefQualityEntries = prefQualityValues
 
     private val vidmolyExtractor by lazy { VidMolyExtractor(client, headers) }
     private val voeExtractor by lazy { VoeExtractor(client, headers) }
 
-    private fun getPlayerVideos(player: Element): List<Video> {
-        val url = getPlayerUrl(player) ?: return emptyList()
-        Log.d(tag, "Fetching videos from: $url")
+    override fun videoListParse(response: Response): List<Video> {
+        val document = response.asJsoup()
+        val players = document.select("#playex .sa-play-cover")
 
-        val videos: List<Video> = when {
-            "vidmoly" in url -> vidmolyExtractor.videosFromUrl(url)
+        return players.parallelCatchingFlatMapBlocking { player ->
+            val url = player.attr("data-src")
+            Log.d(tag, "Fetching videos from: $url")
 
-            "voe" in url -> voeExtractor.videosFromUrl(url)
+            when {
+                "vidmoly" in url -> vidmolyExtractor.videosFromUrl(url)
+                "voe" in url -> voeExtractor.videosFromUrl(url)
 
-            else -> emptyList()
+                else -> emptyList()
+            }
         }
-
-        if (videos.isEmpty()) {
-            Log.w(tag, "Videos not fount for $url")
-        }
-
-        return videos
-    }
-
-    private fun getPlayerUrl(player: Element): String {
-        val body = FormBody.Builder()
-            .add("action", "doo_player_ajax")
-            .add("post", player.attr("data-post"))
-            .add("nume", player.attr("data-nume"))
-            .add("type", player.attr("data-type"))
-            .build()
-
-        return client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
-            .execute().body.string()
-            .substringAfter("\"embed_url\":\"")
-            .substringBefore("\",")
-            .replace("\\", "")
     }
 
     // ============================== Filters ===============================
