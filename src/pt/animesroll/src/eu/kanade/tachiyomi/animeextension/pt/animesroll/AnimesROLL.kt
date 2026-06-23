@@ -19,7 +19,7 @@ import org.jsoup.nodes.Element
 class AnimesROLL : DooPlay(
     "pt-BR",
     "Animes ROLL",
-    "https://anroll.site",
+    "https://anroll.plus",
 ) {
 
     private val tag by lazy { javaClass.simpleName }
@@ -153,11 +153,6 @@ class AnimesROLL : DooPlay(
     }
 
     // ============================= Utilities ==============================
-    private fun Element.tryGetAttr(vararg attributeKeys: String): String? {
-        val attributeKey = attributeKeys.first { hasAttr(it) }
-        return attr(attributeKey)
-    }
-
     override fun List<Video>.sort(): List<Video> {
         val quality = preferences.getString(videoSortPrefKey, videoSortPrefDefault)!!
         return sortedWith(
