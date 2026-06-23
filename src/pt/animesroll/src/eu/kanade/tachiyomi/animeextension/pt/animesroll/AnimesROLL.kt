@@ -28,11 +28,13 @@ class AnimesROLL : DooPlay(
     override val versionId: Int = 2
 
     // ============================== Popular ===============================
-    override fun popularAnimeSelector() = "div.items.featured article div.poster"
-    override fun popularAnimeRequest(page: Int) = GET("$baseUrl/animes/", headers)
+    override fun popularAnimeSelector() = "article div.poster"
+    override fun popularAnimeRequest(page: Int) = GET("$baseUrl/anime/page/$page", headers)
+    override fun popularAnimeNextPageSelector() = ".pagination .current + a"
 
     // =============================== Latest ===============================
-    override val latestUpdatesPath = "episodios"
+    override val latestUpdatesPath = "episodio"
+    override fun latestUpdatesNextPageSelector() = popularAnimeNextPageSelector()
 
     // =============================== Search ===============================
     override fun searchAnimeSelector() = "div.result-item article div.thumbnail > a"
@@ -173,6 +175,8 @@ class AnimesROLL : DooPlay(
     }
 
     // ============================= Utilities ==============================
+    override val animeMenuSelector = "div.pag_episodes div.item a[href] i.icon-bars"
+
     override fun List<Video>.sort(): List<Video> {
         val quality = preferences.getString(videoSortPrefKey, videoSortPrefDefault)!!
         return sortedWith(
