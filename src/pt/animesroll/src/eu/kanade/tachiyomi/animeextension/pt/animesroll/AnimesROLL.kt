@@ -13,6 +13,7 @@ import eu.kanade.tachiyomi.util.asJsoup
 import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
 import okhttp3.FormBody
 import okhttp3.Response
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
@@ -76,7 +77,9 @@ class AnimesROLL : DooPlay(
     // ============================== Episodes ==============================
     override fun getSeasonEpisodes(season: Element): List<SEpisode> {
         val seasonName = season.selectFirst("span.se-t")?.text()
-        return season.select(episodeListSelector()).mapNotNull { element ->
+        val episodeElements = season.select(episodeListSelector()).ifEmpty { getEpisodeElements(season) }
+
+        return episodeElements.mapNotNull { element ->
             runCatching {
                 if (seasonName.isNullOrBlank()) {
                     episodeFromElement(element)
@@ -85,6 +88,23 @@ class AnimesROLL : DooPlay(
                 }
             }.onFailure { it.printStackTrace() }.getOrNull()
         }
+    }
+
+    private fun getEpisodeElements(season: Element): List<Element> {
+        val body = FormBody.Builder()
+            .add("action", "sac_load_season_episodes")
+            .add("season_id", season.attr("data-season-id"))
+            .add("tmdb", season.attr("data-tmdb"))
+            .build()
+
+        return client.newCall(POST("$baseUrl/wp-admin/admin-ajax.php", headers, body))
+            .execute().body.string()
+            .substringAfter("\"html\":\"")
+            .replace("\\", "")
+            .let {
+                val doc = Jsoup.parse(it)
+                doc.select("li")
+            }
     }
 
     // ============================ Video Links =============================
