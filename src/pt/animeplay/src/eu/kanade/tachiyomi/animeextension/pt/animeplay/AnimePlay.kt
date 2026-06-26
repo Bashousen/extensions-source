@@ -152,7 +152,15 @@ class AnimePlay : DooPlay(
         val url = getPlayerUrl(player)
 
         val videos = when {
-            "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
+            "blogger.com" in url -> {
+                val videoUrl = url.toHttpUrl().let {
+                    if ("blogger" in it.host) {
+                        url
+                    } else it.queryParameter("link") ?: return emptyList()
+                }
+
+                bloggerExtractor.videosFromUrl(videoUrl, headers)
+            }
             "jwplayer?source=" in url -> {
                 val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
 
