@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.animeextension.pt.animeplay
 
+import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.BurstcloudExtractor
 import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.UniversalExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
@@ -136,6 +137,7 @@ class AnimePlay : DooPlay(
 
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
     private val universalExtractor by lazy { UniversalExtractor(client) }
+    private val burstcloudExtractor by lazy { BurstcloudExtractor(client) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
         val name = player.selectFirst("span.title")!!.text()
@@ -175,6 +177,7 @@ class AnimePlay : DooPlay(
                     Video(videoUrl, name, videoUrl, videoHeaders),
                 )
             }
+            "burstcloud" in url -> burstcloudExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
         }
