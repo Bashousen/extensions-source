@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.animeextension.pt.animeplay
 
-import android.annotation.SuppressLint
 import android.util.Base64
 import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.BurstcloudExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
@@ -19,16 +18,10 @@ import eu.kanade.tachiyomi.util.parseAs
 import kotlinx.serialization.Serializable
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 class AnimePlay : DooPlay(
     "pt-BR",
