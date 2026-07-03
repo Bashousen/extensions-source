@@ -1,13 +1,15 @@
 package eu.kanade.tachiyomi.animeextension.pt.animeplay
 
+import android.annotation.SuppressLint
+import android.util.Base64
 import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.BurstcloudExtractor
-import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.UniversalExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
+import eu.kanade.tachiyomi.lib.cryptoaes.CryptoAES
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
@@ -17,10 +19,16 @@ import eu.kanade.tachiyomi.util.parseAs
 import kotlinx.serialization.Serializable
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 class AnimePlay : DooPlay(
     "pt-BR",
@@ -136,7 +144,6 @@ class AnimePlay : DooPlay(
     }
 
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
-    private val universalExtractor by lazy { UniversalExtractor(client) }
     private val burstcloudExtractor by lazy { BurstcloudExtractor(client) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
@@ -163,6 +170,7 @@ class AnimePlay : DooPlay(
 
                 bloggerExtractor.videosFromUrl(videoUrl, headers)
             }
+
             "jwplayer?source=" in url -> {
                 val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
 
@@ -177,14 +185,41 @@ class AnimePlay : DooPlay(
                     Video(videoUrl, name, videoUrl, videoHeaders),
                 )
             }
+
             "burstcloud" in url -> burstcloudExtractor.videosFromUrl(url, headers)
+
+            "/#" in url -> {
+                val videoId = url.substringAfter("#")
+
+                val hex = client.newCall(GET("https://${url.toHttpUrl().host}/api/v1/download?id=$videoId"))
+                    .execute().body.string().trim()
+                val iv = "1234567890oiuytr".encodeToByteArray()
+                val key = "kiemtienmua911ca".encodeToByteArray()
+
+                val cipherText = Base64.encodeToString(
+                    hex.hexToByteArray(),
+                    Base64.DEFAULT,
+                )
+
+                val videoUrl = CryptoAES.decrypt(cipherText, key, iv)
+                    .substringAfter("\"mp4\":\"")
+                    .substringBefore("\"")
+                    .replace("\\", "")
+
+                val quality = videoUrl.split("/")[8].substringBefore(".")
+
+                val videoHeaders = headers.newBuilder()
+                    .set("Referer", "https://${url.toHttpUrl().host}/")
+                    .build()
+
+                return listOf(
+                    Video(videoUrl, "#$quality", videoUrl, videoHeaders),
+                )
+            }
 
             else -> emptyList()
         }
 
-        if (videos.isEmpty()) {
-            return universalExtractor.videosFromUrl(url, headers, name)
-        }
         return videos
     }
 
