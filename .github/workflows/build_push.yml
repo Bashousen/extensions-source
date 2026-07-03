@@ -114,7 +114,8 @@ jobs:
           ALIAS: ${{ secrets.ALIAS }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: chmod +x ./gradlew && ./gradlew -p src assembleRelease
+          GRADLE_OPTS: "-Xmx4096m -XX:MaxMetaspaceSize=1024m"
+        run: chmod +x ./gradlew && ./gradlew -p src assembleRelease --no-daemon --no-parallel
 
       - name: Store build cache
         uses: actions/cache/save@v3
