@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.animeextension.pt.darkmahou.extractors.DarkMahouExtra
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Response
@@ -27,6 +28,14 @@ class DarkMahou : AnimeStream(
             thumbnail_url = element.selectFirst("img")?.getImageUrl()
         }
     }
+
+    // =============================== Popular ===============================
+
+    override fun popularAnimeRequest(page: Int) = GET("$animeListUrl/page/$page/?order=popular")
+
+    // =============================== Latest ===============================
+
+    override fun latestUpdatesRequest(page: Int) = GET("$animeListUrl/page/$page/?order=update")
 
     // ============================== Filters ===============================
     override val fetchFilters = false
