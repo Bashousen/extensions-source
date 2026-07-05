@@ -13,17 +13,20 @@ class DarkMahouExtractor(private val client: OkHttpClient, private val headers: 
 
         val fragment = url.toHttpUrl().fragment
 
-        val soraurls = doc.select("div.mctnx div.soraddl .sorattl h3").find {
+        val targets = doc.select("div.mctnx div.soraddl .sorattl h3").find {
             it.text() == fragment
-        }?.closest(".soraddl")?.select(".soraurl") ?: return emptyList()
+        }?.closest(".soraddl")?.select("tr") ?: return emptyList()
 
-        return soraurls.flatMap {
-            val prefix = if (it.text().lowercase().contains("dublado")) {
+        return targets.flatMap {
+            val innerText = it.selectFirst(".res")?.text() ?: return emptyList()
+            val prefix = if (innerText.lowercase().contains("dublado")) {
                 "Dublado"
             } else {
                 "Legendado"
             }
-            it.select(".slink a").map {
+
+            val urls = it.select(".slink a")
+            urls.map {
                 val videoUrl = it.attr("href")
                 val quality = it.text().trim()
                 Video(videoUrl, "$prefix - $quality", videoUrl)

@@ -5,8 +5,8 @@ import eu.kanade.tachiyomi.animeextension.pt.darkmahou.extractors.DarkMahouExtra
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
+import eu.kanade.tachiyomi.network.GET
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Response
 import org.jsoup.nodes.Element
