@@ -8,9 +8,11 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONArray
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 class DattebayoBR : AnimeHttpSource() {
@@ -39,27 +41,46 @@ class DattebayoBR : AnimeHttpSource() {
                     val anchor = element.selectFirst("a")!!
 
                     title = element
-                        .selectFirst(".ultimosAnimesHomeItemInfosNome")
-                        ?.text()
-                        ?.trim()
-                        ?: "Sem título"
+                        .selectFirst(".ultimosAnimesHomeItemInfosNome")!!
+                        .text()
+                        .trim()
 
                     setUrlWithoutDomain(anchor.attr("href"))
 
                     thumbnail_url = element
-                        .selectFirst(".ultimosAnimesHomeItemImg img")
+                        .selectFirst("img")
                         ?.attr("abs:src")
                 }
             }
-        return AnimesPage(animes, hasNextPage = true)
+        return AnimesPage(animes, hasNextPage = false)
     }
 
     // Latest
     override fun latestUpdatesRequest(page: Int): Request =
         popularAnimeRequest(page)
 
-    override fun latestUpdatesParse(response: Response): AnimesPage =
-        popularAnimeParse(response)
+    override fun latestUpdatesParse(response: Response): AnimesPage {
+        val document = response.asJsoup()
+
+        val animes = document
+            .select(".epiContainer:nth-child(4) > .ultimosEpisodiosHomeItem")
+            .map { element ->
+                SAnime.create().apply {
+                    val anchor = element.selectFirst("a")!!
+
+                    title = element.selectFirst(".ultimosEpisodiosHomeItemInfosNome")!!
+                        .text()
+                        .trim()
+
+                    setUrlWithoutDomain(anchor.attr("href"))
+
+                    thumbnail_url = element
+                        .selectFirst("img")
+                        ?.attr("abs:src")
+                }
+            }
+        return AnimesPage(animes, hasNextPage = false)
+    }
 
     // Search
     override fun searchAnimeRequest(
@@ -77,31 +98,25 @@ class DattebayoBR : AnimeHttpSource() {
             .map { element ->
                 SAnime.create().apply {
                     val anchor = element.selectFirst("a")!!
-
                     title = element
-                        .selectFirst(".ultimosAnimesHomeItemInfosNome")
-                        ?.text()
-                        ?.trim()
-                        ?: "Sem título"
+                        .selectFirst(".ultimosAnimesHomeItemInfosNome")!!
+                        .text()
+                        .trim()
 
                     setUrlWithoutDomain(anchor.attr("href"))
 
                     thumbnail_url = element
-                        .selectFirst(".ultimosAnimesHomeItemImg img")
+                        .selectFirst("img")
                         ?.attr("abs:src")
                 }
             }
 
-        val hasNextPage = document.selectFirst("div.letterBox a:contains(»)")
-            ?.attr("href")
-            ?.contains("page=") == true
-
-        return AnimesPage(animes, hasNextPage)
+        return AnimesPage(animes, hasNextPage(document))
     }
 
     // Details
     override fun animeDetailsParse(response: Response): SAnime {
-        val document = response.asJsoup()
+        val document = getRealAnimeDoc(response.asJsoup())
 
         return SAnime.create().apply {
             title = document.selectFirst(".tituloPage h1")
@@ -149,14 +164,9 @@ class DattebayoBR : AnimeHttpSource() {
                 .replace(",", ".")
                 .toFloatOrNull()
 
-            val episodeName = element.selectFirst(".ultimosEpisodiosHomeItemInfosNome")
-                ?.text()
-                ?.trim()
-                ?: "Episódio $episodeNumText"
-
             return SEpisode.create().apply {
                 setUrlWithoutDomain(anchor.attr("href"))
-                name = episodeName
+                name = episodeNumText
                 episode_number = episodeNumber ?: 0f
                 date_upload = parseDate(element.selectFirst(".lancaster_episodio_info_data")?.text())
             }
@@ -169,9 +179,8 @@ class DattebayoBR : AnimeHttpSource() {
         val episodes = mutableListOf<SEpisode>()
         val seenUrls = mutableSetOf<String>()
 
-        val baseAnimeUrl = response.request.url.toString()
-            .substringBefore("/page/")
-            .removeSuffix("/")
+        val baseAnimeUrl = response.request.url.toString().takeIf { "videos" !in it }
+            ?: response.asJsoup().selectFirst(animeMenuSelector)!!.parent()!!.attr("href")
 
         var currentPage = 1
 
@@ -200,6 +209,7 @@ class DattebayoBR : AnimeHttpSource() {
             }
 
             if (!addedAny) break
+            if (!hasNextPage(document)) break
 
             currentPage++
         }
@@ -284,5 +294,27 @@ class DattebayoBR : AnimeHttpSource() {
         }
 
         return videos.sortedByDescending { it.quality }
+    }
+
+    // Utilities
+    private fun hasNextPage(document: Document): Boolean {
+        val currentPage = document.location().toHttpUrl()
+        val lastPage = document.selectFirst("div.letterBox a:last-child")!!
+            .attr("abs:href").toHttpUrl()
+
+        return currentPage != lastPage
+    }
+
+    private val animeMenuSelector = ".controlesBoxItem .iconLista"
+
+    private fun getRealAnimeDoc(document: Document): Document {
+        val menu = document.selectFirst(animeMenuSelector)
+        return if (menu != null) {
+            val originalUrl = menu.parent()!!.attr("href")
+            val req = client.newCall(GET(originalUrl, headers)).execute()
+            req.asJsoup()
+        } else {
+            document
+        }
     }
 }
