@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.animeextension.pt.animeplay
 
-import android.util.Base64
 import eu.kanade.tachiyomi.animeextension.pt.animeplay.extractors.BurstcloudExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
@@ -8,7 +7,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
-import eu.kanade.tachiyomi.lib.cryptoaes.CryptoAES
+import eu.kanade.tachiyomi.lib.hashvideoidextractor.HashVideoIdExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
@@ -138,6 +137,7 @@ class AnimePlay : DooPlay(
 
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
     private val burstcloudExtractor by lazy { BurstcloudExtractor(client) }
+    private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
         val name = player.selectFirst("span.title")!!.text()
@@ -181,34 +181,7 @@ class AnimePlay : DooPlay(
 
             "burstcloud" in url -> burstcloudExtractor.videosFromUrl(url, headers)
 
-            "/#" in url -> {
-                val videoId = url.substringAfter("#")
-
-                val hex = client.newCall(GET("https://${url.toHttpUrl().host}/api/v1/download?id=$videoId"))
-                    .execute().body.string().trim()
-                val iv = "1234567890oiuytr".encodeToByteArray()
-                val key = "kiemtienmua911ca".encodeToByteArray()
-
-                val cipherText = Base64.encodeToString(
-                    hex.hexToByteArray(),
-                    Base64.DEFAULT,
-                )
-
-                val videoUrl = CryptoAES.decrypt(cipherText, key, iv)
-                    .substringAfter("\"mp4\":\"")
-                    .substringBefore("\"")
-                    .replace("\\", "")
-
-                val quality = videoUrl.split("/")[8].substringBefore(".")
-
-                val videoHeaders = headers.newBuilder()
-                    .set("Referer", "https://${url.toHttpUrl().host}/")
-                    .build()
-
-                return listOf(
-                    Video(videoUrl, "#$quality", videoUrl, videoHeaders),
-                )
-            }
+            "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
         }
