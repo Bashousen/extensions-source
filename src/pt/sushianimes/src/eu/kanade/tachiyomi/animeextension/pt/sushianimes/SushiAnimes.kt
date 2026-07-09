@@ -6,17 +6,26 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
+import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
+import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.util.asJsoup
+import eu.kanade.tachiyomi.util.parallelCatchingFlatMapBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 class SushiAnimes : ParsedAnimeHttpSource() {
 
@@ -164,24 +173,54 @@ class SushiAnimes : ParsedAnimeHttpSource() {
     override fun episodeFromElement(element: Element) = throw UnsupportedOperationException()
 
     // ============================ Video Links =============================
+    private val clientIgnoringSSL by lazy { OkHttpClient.Builder().ignoreAllSSLErrors().build() }
+    private val bloggerExtractor by lazy { BloggerExtractor(client) }
+    private val playlistUtils by lazy { PlaylistUtils(clientIgnoringSSL) }
+
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
+        val players = document.select(".anime-player-switch button")
+        val videos = players.parallelCatchingFlatMapBlocking(::getPLayerVideos)
 
-        val id = document.selectFirst("[data-embed]")?.attr("data-embed") ?: return emptyList()
+        return videos
+    }
 
+    private fun getPLayerVideos(player: Element): List<Video> {
+        val url = getPlayerUrl(player).takeIf { !it.isNullOrEmpty() } ?: return emptyList()
+
+        return when {
+            "cdn-s01.pixel-sus-4k-image.com" in url -> {
+                val videoHeaders = headers.newBuilder().set("Referer", "$baseUrl/").build()
+                listOf(Video(url, "Sushi Animes", url, videoHeaders))
+            }
+            "cdn.imagesskill.com" in url -> playlistUtils.extractFromHls(url)
+            "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
+
+            else -> emptyList()
+        }
+    }
+
+    private fun getPlayerUrl(player: Element): String? {
+        val id = player.attr("data-embed")
         val formBody = FormBody.Builder()
             .add("id", id)
             .build()
-
         val request = POST("$baseUrl/ajax/embed", headers, formBody)
-        val body = client.newCall(request).execute().body.string()
+        val response = client.newCall(request).execute().body.string()
 
-        val videoUrl = body.substringAfterLast("playerEmbed", "")
-            .substringAfter("\"")
-            .substringBefore("\"")
-            .replace("\\", "")
+        return when {
+            "playerEmbed" in response ->
+                response
+                    .substringAfter("playerEmbed = \"", "")
+                    .substringBefore("\"")
 
-        return listOf(Video(videoUrl, "Sushi Animes", videoUrl))
+            "iframe" in response -> response.substringAfter("src=\"")
+                .substringBefore("\"")
+                .toHttpUrl()
+                .queryParameter("src")
+
+            else -> null
+        }
     }
 
     override fun videoListSelector(): String {
@@ -197,6 +236,25 @@ class SushiAnimes : ParsedAnimeHttpSource() {
     }
 
     // ============================= Utilities ==============================
+    private fun OkHttpClient.Builder.ignoreAllSSLErrors(): OkHttpClient.Builder {
+        val naiveTrustManager =
+            @Suppress("CustomX509TrustManager")
+            object : X509TrustManager {
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+                override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) = Unit
+                override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) = Unit
+            }
+
+        val insecureSocketFactory = SSLContext.getInstance("TLSv1.2").apply {
+            val trustAllCerts = arrayOf<TrustManager>(naiveTrustManager)
+            init(null, trustAllCerts, SecureRandom())
+        }.socketFactory
+
+        sslSocketFactory(insecureSocketFactory, naiveTrustManager)
+        hostnameVerifier { _, _ -> true }
+        return this
+    }
+
     private fun getRealDoc(document: Document): Document {
         val menu = document.selectFirst(".episode-nav .home-list a")
         if (menu != null) {
