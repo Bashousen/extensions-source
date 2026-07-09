@@ -37,6 +37,9 @@ object Unpacker {
             .substringBetween("}('", ".split('|'),0,{}))")
             .replace("\\'", "\"")
 
+        val radix = Regex("""',(\d+),(\d+),'""").findAll(packed).lastOrNull()
+            ?.groupValues?.get(1)?.toIntOrNull() ?: 62
+
         val parser = SubstringExtractor(packed)
         val data: String
         if (left != null && right != null) {
@@ -52,7 +55,7 @@ object Unpacker {
 
         return wordRegex.replace(data) {
             val key = it.value
-            val index = parseRadix62(key)
+            val index = parseRadix(key, radix)
             if (index >= size) return@replace key
             dictionary[index].ifEmpty { key }
         }
@@ -60,10 +63,10 @@ object Unpacker {
 
     private val wordRegex by lazy { Regex("""[0-9A-Za-z]+""") }
 
-    private fun parseRadix62(str: String): Int {
+    private fun parseRadix(str: String, radix: Int): Int {
         var result = 0
         for (ch in str.toCharArray()) {
-            result = result * 62 + when {
+            result = result * radix + when {
                 ch.code <= '9'.code -> { // 0-9
                     ch.code - '0'.code
                 }
