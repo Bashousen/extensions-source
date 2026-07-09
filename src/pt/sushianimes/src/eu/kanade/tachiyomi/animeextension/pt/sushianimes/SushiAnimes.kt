@@ -63,7 +63,7 @@ class SushiAnimes : ParsedAnimeHttpSource() {
         thumbnail_url = element.selectFirst(".media-episode")?.attr("data-src")
     }
 
-    override fun latestUpdatesNextPageSelector(): String = "a.btn.btn-theme.ml-2"
+    override fun latestUpdatesNextPageSelector(): String = "a.pagination-btn.pagination-nav:last-child"
 
     // =============================== Search ===============================
     override suspend fun getSearchAnime(
