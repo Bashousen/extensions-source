@@ -112,7 +112,6 @@ data class EpisodeSchemaDto(
     val type: String? = null,
     val episodeNumber: String,
     val name: String? = null,
-    val datePublished: String,
     val url: String,
 )
 
