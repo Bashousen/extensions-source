@@ -141,7 +141,7 @@ class TopAnimes : DooPlay(
         var videos = when {
             "ruplay" in name -> ruplayExtractor.videosFromUrl(url)
             "streamwish" in name -> streamWishExtractor.videosFromUrl(url)
-            "filemoon" in name -> filemoonExtractor.videosFromUrl(url)
+            "filemoon" in name -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
             "mixdrop" in name -> mixDropExtractor.videoFromUrl(url)
             "streamtape" in name -> streamTapeExtractor.videosFromUrl(url)
             "noa" in name -> noaExtractor.videosFromUrl(url)

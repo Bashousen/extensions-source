@@ -2,8 +2,8 @@ package eu.kanade.tachiyomi.animeextension.pt.anikyuu
 
 import android.util.Log
 import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.EmTurboExtractor
-import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.MoonExtractor
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.filemoonextractor.FilemoonExtractor
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
 
 class Anikyuu : AnimeStream(
@@ -21,7 +21,7 @@ class Anikyuu : AnimeStream(
 
     // ============================ Video Links =============================
 
-    private val moonExtractor by lazy { MoonExtractor(client, headers, baseUrl) }
+    private val filemoonExtractor by lazy { FilemoonExtractor(client) }
     private val emTurboExtractor by lazy { EmTurboExtractor(client, headers) }
 
     override fun getVideoList(url: String, name: String): List<Video> {
@@ -33,7 +33,7 @@ class Anikyuu : AnimeStream(
                 "byselapuix",
             ).any(url::contains) -> {
                 val url = if (url.count { it == '/' } > 4) url.substringBeforeLast("/") else url
-                moonExtractor.videosFromUrl(url, "$name - ")
+                filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
             }
             "turbovidhls.com" in url -> emTurboExtractor.getVideos(url)
 
