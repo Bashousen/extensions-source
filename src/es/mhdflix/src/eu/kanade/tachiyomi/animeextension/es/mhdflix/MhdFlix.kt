@@ -402,7 +402,7 @@ open class MhdFlix : AnimeHttpSource(), ConfigurableAnimeSource {
             }
         }.also(screen::addPreference)
 
-        FilemoonExtractor.addSubtitlePref(screen)
+//        FilemoonExtractor.addSubtitlePref(screen)
     }
 
     private val vidHideExtractor by lazy { VidHideExtractor(client, headers) }
