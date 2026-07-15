@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import eu.kanade.tachiyomi.animeextension.pt.animesgratis.extractors.NoaExtractor
 import eu.kanade.tachiyomi.animeextension.pt.animesgratis.extractors.RuplayExtractor
+import eu.kanade.tachiyomi.animeextension.pt.animesgratis.extractors.UniversalExtractor
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
@@ -128,6 +129,7 @@ class TopAnimes : DooPlay(
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
     private val filemoonExtractor by lazy { FilemoonExtractor(client) }
     private val streamTapeExtractor by lazy { StreamTapeExtractor(client) }
+    private val universalExtractor by lazy { UniversalExtractor(client) }
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val mixDropExtractor by lazy { MixDropExtractor(client) }
     private val m3u8Integration by lazy { M3u8Integration(client) }
@@ -156,6 +158,14 @@ class TopAnimes : DooPlay(
             }
 
             else -> emptyList()
+        }
+
+        if (videos.isEmpty()) {
+            Log.d(tag, "Videos are empty, fetching videos from using universal extractor: $url")
+            val newHeaders = headers.newBuilder().set("Referer", baseUrl).build()
+            videos = universalExtractor.videosFromUrl(url, newHeaders, realName)
+            // Process M3U8 videos through local server (automatic detection)
+            return runBlocking { m3u8Integration.processVideoList(videos) }
         }
 
         if (videos.isEmpty()) {
