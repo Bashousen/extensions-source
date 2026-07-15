@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.animeextension.pt.smartanimes.extractors
 
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.lib.googledriveplayerextractor.GoogleDrivePlayerExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.util.parseAs
@@ -15,7 +14,7 @@ class SmartAnimesExtractor(private val client: OkHttpClient, private val headers
         .followRedirects(false)
         .build()
 
-    private val gdriveExtractor by lazy { GoogleDrivePlayerExtractor(client, headers) }
+    private val gdriveExtractor by lazy { GoogleDriveExtractor(client, headers) }
     private val sendNowExtractor by lazy { SendNowExtractor(client, headers) }
 
     fun videosFromUrl(url: String, name: String): List<Video> {
@@ -51,7 +50,7 @@ class SmartAnimesExtractor(private val client: OkHttpClient, private val headers
                 ?: return emptyList()
 
         return when {
-            "drive.google.com" in sourceUrl -> gdriveExtractor.videosFromUrl(sourceUrl)
+            "drive.google.com" in sourceUrl -> gdriveExtractor.videosFromUrl(sourceUrl, name)
             "send.now" in sourceUrl -> sendNowExtractor.videosFromUrl(sourceUrl, name)
 
             else -> emptyList()
