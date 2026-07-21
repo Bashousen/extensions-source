@@ -4,7 +4,7 @@ ext {
     extClass = '.TopAnimes'
     themePkg = 'dooplay'
     baseUrl = 'https://topanimes.net'
-    overrideVersionCode = 34
+    overrideVersionCode = 35
 }
 
 apply from: "$rootDir/common.gradle"
@@ -17,4 +17,6 @@ dependencies {
     implementation(project(":lib:playlist-utils"))
     implementation(project(":lib:streamtape-extractor"))
     implementation(project(":lib:streamwish-extractor"))
+    implementation(project(":lib:abyss-extractor"))
+    implementation(project(":lib:hashvideoid-extractor"))
 }
