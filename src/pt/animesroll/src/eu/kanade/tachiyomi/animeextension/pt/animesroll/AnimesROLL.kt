@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.vidmolyextractor.VidMolyExtractor
+import eu.kanade.tachiyomi.lib.abyssextractor.AbyssExtractor
 import eu.kanade.tachiyomi.lib.voeextractor.VoeExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
@@ -115,6 +116,7 @@ class AnimesROLL : DooPlay(
 
     private val vidmolyExtractor by lazy { VidMolyExtractor(client, headers) }
     private val voeExtractor by lazy { VoeExtractor(client, headers) }
+    private val abyssExtractor by lazy { AbyssExtractor(client) }
 
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
@@ -127,6 +129,7 @@ class AnimesROLL : DooPlay(
             when {
                 "vidmoly" in url -> vidmolyExtractor.videosFromUrl(url)
                 "voe" in url -> voeExtractor.videosFromUrl(url)
+                "abyss" in url -> abyssExtractor.videosFromUrl(url, headers)
 
                 else -> emptyList()
             }

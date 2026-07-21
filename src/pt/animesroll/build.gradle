@@ -9,7 +9,7 @@ ext {
 apply from: "$rootDir/common.gradle"
 
 dependencies {
-    implementation(project(":lib:playlist-utils"))
     implementation(project(":lib:voe-extractor"))
     implementation(project(":lib:vidmoly-extractor"))
+    implementation(project(":lib:abyss-extractor"))
 }
