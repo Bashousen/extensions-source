@@ -3,7 +3,7 @@ ext {
     extClass = '.Anikyuu'
     themePkg = 'animestream'
     baseUrl = 'https://anikyuu.to'
-    overrideVersionCode = 7
+    overrideVersionCode = 8
 }
 
 apply from: "$rootDir/common.gradle"
