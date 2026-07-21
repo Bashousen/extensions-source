@@ -8,8 +8,10 @@ import eu.kanade.tachiyomi.animeextension.pt.animesgratis.extractors.UniversalEx
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.abyssextractor.AbyssExtractor
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.lib.filemoonextractor.FilemoonExtractor
+import eu.kanade.tachiyomi.lib.hashvideoidextractor.HashVideoIdExtractor
 import eu.kanade.tachiyomi.lib.m3u8server.M3u8Integration
 import eu.kanade.tachiyomi.lib.mixdropextractor.MixDropExtractor
 import eu.kanade.tachiyomi.lib.streamtapeextractor.StreamTapeExtractor
@@ -133,6 +135,8 @@ class TopAnimes : DooPlay(
     private val streamWishExtractor by lazy { StreamWishExtractor(client, headers) }
     private val mixDropExtractor by lazy { MixDropExtractor(client) }
     private val m3u8Integration by lazy { M3u8Integration(client) }
+    private val abyssExtractor by lazy { AbyssExtractor(client) }
+    private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
         val realName = player.selectFirst("span.title")!!.text()
@@ -150,6 +154,8 @@ class TopAnimes : DooPlay(
             "mdplayer" in name -> noaExtractor.videosFromUrl(url, name)
             "/player/" in url -> bloggerExtractor.videosFromUrl(url, headers)
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
+            "abyss" in url -> abyssExtractor.videosFromUrl(url, headers)
+            "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
             "q1n.net/antivirus" in url -> {
                 Log.d(tag, "Fetching videos from using noa extractor: $url")
                 val videos = noaExtractor.videosFromUrl(url, realName)
