@@ -4,6 +4,7 @@ import android.util.Log
 import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.EmTurboExtractor
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.filemoonextractor.FilemoonExtractor
+import eu.kanade.tachiyomi.lib.hashvideoidextractor.HashVideoIdExtractor
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
 
 class Anikyuu : AnimeStream(
@@ -23,19 +24,16 @@ class Anikyuu : AnimeStream(
 
     private val filemoonExtractor by lazy { FilemoonExtractor(client) }
     private val emTurboExtractor by lazy { EmTurboExtractor(client, headers) }
+    private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
 
     override fun getVideoList(url: String, name: String): List<Video> {
         Log.d(tag, "Fetching videos from: $url")
 
         return when {
-            listOf(
-                "filemoon",
-                "byselapuix",
-            ).any(url::contains) -> {
-                val url = if (url.count { it == '/' } > 4) url.substringBeforeLast("/") else url
-                filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
-            }
-            "turbovidhls.com" in url -> emTurboExtractor.getVideos(url)
+            "filemoon" in url -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
+            "byselapuix" in url -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
+            "turbo" in url -> emTurboExtractor.getVideos(url)
+            "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
         }

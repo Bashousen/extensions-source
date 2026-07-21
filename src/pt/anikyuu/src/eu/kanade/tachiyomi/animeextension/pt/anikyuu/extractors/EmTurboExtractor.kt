@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors
 
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.m3u8server.M3u8Integration
 import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
@@ -24,7 +25,7 @@ class EmTurboExtractor(private val client: OkHttpClient, private val headers: He
 
         if (urlPlay.toHttpUrlOrNull() == null) return emptyList()
 
-        val videos = playlistExtractor.extractFromHls(urlPlay, url, videoNameGen = { quality -> "EmTurboVid: $quality" })
+        val videos = playlistExtractor.extractFromHls(urlPlay, url, videoNameGen = { quality -> "EmTurboVid - $quality" })
             .distinctBy { it.url } // they have the same stream repeated twice in the playlist file
 
         return runBlocking { m3u8Integration.processVideoList(videos) }
