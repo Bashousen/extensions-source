@@ -1,6 +1,7 @@
 [versions]
 agp_version = "8.2.1"
 coroutines_version = "1.7.1"
+gsonVersion = "2.11.0"
 kotlin_version = "2.2.0"
 serialization_version = "1.5.1"
 chicory_version = "1.1.0"
@@ -13,6 +14,7 @@ gradle-kotlinter = { module = "org.jmailen.gradle:kotlinter-gradle", version = "
 
 aniyomi-lib = { module = "com.github.aniyomiorg:extensions-lib", version = "14" }
 
+gson = { module = "com.google.code.gson:gson", version.ref = "gsonVersion" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin_version" }
 kotlin-protobuf = { module = "org.jetbrains.kotlinx:kotlinx-serialization-protobuf", version.ref = "serialization_version" }
 kotlin-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization_version" }
