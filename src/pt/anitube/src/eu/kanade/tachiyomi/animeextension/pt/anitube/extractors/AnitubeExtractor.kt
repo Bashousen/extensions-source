@@ -6,6 +6,9 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.util.asJsoup
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.FormBody
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -180,7 +183,11 @@ class AnitubeExtractor(
     }
 
     fun getVideosFromUrl(url: String, quality: String): List<Video> {
-        val playerInfo = fetchPlayerInfo(url, headers)
+        val playerInfo = runBlocking {
+            FETCH_MUTEX.withLock {
+                fetchPlayerInfo(url, headers)
+            }
+        }
         val videoToken = fetchVideoToken(playerInfo)
         return if (!videoToken.isNullOrBlank()) {
             val finalUrl = playerInfo.videoUrl + videoToken
@@ -192,5 +199,6 @@ class AnitubeExtractor(
 
     companion object {
         private val ADS_URL_REGEX = Regex("""(?:urlToFetch|ADS_URL)\s*=\s*['"]([^'"]+)['"]""")
+        private val FETCH_MUTEX = Mutex()
     }
 }
