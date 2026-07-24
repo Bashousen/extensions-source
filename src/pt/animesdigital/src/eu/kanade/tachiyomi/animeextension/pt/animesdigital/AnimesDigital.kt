@@ -111,7 +111,7 @@ class AnimesDigital : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
 
     private val searchToken by lazy {
-        client.newCall(GET("$baseUrl/animes-legendados-online")).execute().asJsoup()
+        client.newCall(GET("$baseUrl/animes-legendados-online001")).execute().asJsoup()
             .selectFirst("div.menu_filter_box")!!
             .attr("data-secury")
     }
