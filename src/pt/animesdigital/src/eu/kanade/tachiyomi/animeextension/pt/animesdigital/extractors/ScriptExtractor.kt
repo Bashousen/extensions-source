@@ -38,7 +38,7 @@ object ScriptExtractor {
 
                 when {
                     "cdn.imagesskill.com" in url -> {
-                        //Dantotsu por padrao defini para "br, gzip", com isso setado nao retorna um m3u8 valido.
+                        // Dantotsu por padrao defini para "br, gzip", com isso setado nao retorna um m3u8 valido.
                         val newHeaders = headers.newBuilder().set("accept-encoding", "").build()
                         m3u8Integration.processVideoList(listOf(Video(url, quality, url, newHeaders)))
                     }
