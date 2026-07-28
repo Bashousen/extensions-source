@@ -97,17 +97,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Restore build cache
-        uses: actions/cache/restore@v3
         with:
-          path: |
-            src/**/build
-            !src/**/build/outputs
-          key: build-cache-${{ github.sha }}-${{ matrix.chunk }}
-          restore-keys: |
-            build-cache-${{ github.sha }}-
-            build-cache-
+          cache-read-only: ${{ matrix.chunk > 0 }}
 
       - name: Build extensions
         env:
