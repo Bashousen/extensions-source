@@ -21,7 +21,7 @@ import java.net.URLEncoder
 class MeusAnimes : AnimeHttpSource() {
 
     override val name = "Meus Animes"
-    override val baseUrl = "https://meusanimes.vip"
+    override val baseUrl = "https://meusanimes.cc"
     override val lang = "pt-BR"
     override val supportsLatest = true
 
