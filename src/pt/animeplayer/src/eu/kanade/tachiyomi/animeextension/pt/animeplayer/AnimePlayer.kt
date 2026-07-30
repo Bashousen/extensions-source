@@ -24,12 +24,10 @@ class AnimePlayer : DooPlay(
 
     override fun popularAnimeRequest(page: Int) = GET("$baseUrl/animes/")
 
-    override fun popularAnimeNextPageSelector() = "a > i#nextpagination"
-
     // =============================== Latest ===============================
     override val latestUpdatesPath = "episodios"
 
-    override fun latestUpdatesNextPageSelector() = popularAnimeNextPageSelector()
+    override fun latestUpdatesNextPageSelector() = "a > i#nextpagination"
 
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document) = SAnime.create().apply {
