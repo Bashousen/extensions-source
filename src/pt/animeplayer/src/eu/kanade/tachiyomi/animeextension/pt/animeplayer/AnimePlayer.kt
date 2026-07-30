@@ -92,9 +92,14 @@ class AnimePlayer : DooPlay(
 
         return urls.parallelFlatMapBlocking { url ->
             when {
-                ".mp4" in url -> {
+                "?key=" in url -> {
+                    val body = client.newCall(GET(url, headers)).execute().body.string()
+                    val videoUrl = body
+                        .substringAfter("videoFile = \"")
+                        .substringBefore("\"")
+
                     listOf(
-                        Video(url, quality, url, headers),
+                        Video(videoUrl, "MP4 - $quality", videoUrl, headers),
                     )
                 }
 
