@@ -167,21 +167,17 @@ class AnimesDrive : DooPlay(
         val videos = when {
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
             "jwplayer?source=" in url -> {
-                val url = url.toHttpUrl()
-
-                val videoUrl = url.queryParameter("source")?.takeIf {
-                    it.toHttpUrl().host !in listOf("cld.pt", "mangas.cloud")
-                } ?: return emptyList()
+                val videoUrl = url.toHttpUrl().queryParameter("source")  ?: return emptyList()
 
                 val videoHeaders = headers.newBuilder()
                     .add("Accept", "*/*")
                     .add("Host", videoUrl.toHttpUrl().host)
-                    .add("Origin", "https://${url.host}")
-                    .add("Referer", "https://${url.host}/")
+                    .add("Origin", "https://${url.toHttpUrl().host}")
+                    .add("Referer", "https://${url.toHttpUrl().host}/")
                     .build()
 
                 return listOf(
-                    Video(videoUrl, name, videoUrl, videoHeaders),
+                    Video(videoUrl, "${videoUrl.toHttpUrl().host} - $name", videoUrl, videoHeaders),
                 )
             }
 
