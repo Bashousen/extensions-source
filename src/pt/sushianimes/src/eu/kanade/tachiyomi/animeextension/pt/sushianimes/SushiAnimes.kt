@@ -7,7 +7,7 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
-import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
+import eu.kanade.tachiyomi.lib.m3u8server.M3u8Integration
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.network.awaitSuccess
@@ -175,7 +175,7 @@ class SushiAnimes : ParsedAnimeHttpSource() {
     // ============================ Video Links =============================
     private val clientIgnoringSSL by lazy { OkHttpClient.Builder().ignoreAllSSLErrors().build() }
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
-    private val playlistUtils by lazy { PlaylistUtils(clientIgnoringSSL) }
+    private val m3u8Integration by lazy { M3u8Integration(clientIgnoringSSL) }
 
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
@@ -193,7 +193,15 @@ class SushiAnimes : ParsedAnimeHttpSource() {
                 val videoHeaders = headers.newBuilder().set("Referer", "$baseUrl/").build()
                 listOf(Video(url, "Sushi Animes", url, videoHeaders))
             }
-            "cdn.imagesskill.com" in url -> playlistUtils.extractFromHls(url)
+            "cdn.imagesskill.com" in url -> {
+                val newHeaders = headers.newBuilder().set("accept-encoding", "").build() // para funcionar no Dantotsu
+                m3u8Integration.processVideoList(
+                    listOf(
+                        Video(url, "Sushi Animes", url, newHeaders),
+                    ),
+                )
+            }
+
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
