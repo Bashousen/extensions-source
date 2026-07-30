@@ -175,7 +175,7 @@ class AnimePlay : DooPlay(
                     .build()
 
                 return listOf(
-                    Video(videoUrl, name, videoUrl, videoHeaders),
+                    Video(videoUrl, "${videoUrl.toHttpUrl().host} - $name", videoUrl, videoHeaders),
                 )
             }
 
