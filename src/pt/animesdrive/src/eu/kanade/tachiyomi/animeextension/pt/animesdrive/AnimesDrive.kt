@@ -1,12 +1,12 @@
 package eu.kanade.tachiyomi.animeextension.pt.animesdrive
 
-import eu.kanade.tachiyomi.animeextension.pt.animesdrive.extractors.UniversalExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilter
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
+import eu.kanade.tachiyomi.lib.hashvideoidextractor.HashVideoIdExtractor
 import eu.kanade.tachiyomi.multisrc.dooplay.DooPlay
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
@@ -148,7 +148,7 @@ class AnimesDrive : DooPlay(
     }
 
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
-    private val universalExtractor by lazy { UniversalExtractor(client) }
+    private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
 
     private fun getPlayerVideos(player: Element): List<Video> {
         val name = player.selectFirst("span.title")!!.text()
@@ -167,7 +167,7 @@ class AnimesDrive : DooPlay(
         val videos = when {
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
             "jwplayer?source=" in url -> {
-                val videoUrl = url.toHttpUrl().queryParameter("source")  ?: return emptyList()
+                val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
 
                 val videoHeaders = headers.newBuilder()
                     .add("Accept", "*/*")
@@ -180,13 +180,11 @@ class AnimesDrive : DooPlay(
                     Video(videoUrl, "${videoUrl.toHttpUrl().host} - $name", videoUrl, videoHeaders),
                 )
             }
+            "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
         }
 
-        if (videos.isEmpty()) {
-            return universalExtractor.videosFromUrl(url, headers, name)
-        }
         return videos
     }
 
