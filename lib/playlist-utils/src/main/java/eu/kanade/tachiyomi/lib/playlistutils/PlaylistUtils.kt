@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.animeextension.pt.donghuanosekai.extractors
+package eu.kanade.tachiyomi.lib.playlistutils
 
 import android.net.Uri
 import eu.kanade.tachiyomi.animesource.model.Track
