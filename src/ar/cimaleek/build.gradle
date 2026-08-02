@@ -1,7 +1,7 @@
 ext {
     extName = 'Cimaleek'
     extClass = '.Cimaleek'
-    extVersionCode = 5
+    extVersionCode = 6
 }
 
 apply from: "$rootDir/common.gradle"
