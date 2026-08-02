@@ -69,7 +69,7 @@ class DonghuaNoSekai : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // =============================== Latest ===============================
     override fun latestUpdatesRequest(page: Int) = GET("$baseUrl/lancamentos?pagina=$page", headers)
 
-    override fun latestUpdatesSelector() = "div.boxContent div.itemE > a"
+    override fun latestUpdatesSelector() = "div.boxContent div.itemE > a:not(:contains(Em breve))"
 
     override fun latestUpdatesFromElement(element: Element) = SAnime.create().apply {
         setUrlWithoutDomain(element.attr("href"))
