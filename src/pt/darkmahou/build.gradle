@@ -3,7 +3,7 @@ ext {
     extClass = '.DarkMahou'
     themePkg = 'animestream'
     baseUrl = 'https://darkmahou.org'
-    overrideVersionCode = 6
+    overrideVersionCode = 7
 }
 
 apply from: "$rootDir/common.gradle"

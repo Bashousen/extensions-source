@@ -3,7 +3,7 @@ ext {
     extClass = '.LaMovie'
     themePkg = 'dopeflix'
     baseUrl = 'https://la.movie'
-    overrideVersionCode = 6
+    overrideVersionCode = 8
 }
 
 apply from: "$rootDir/common.gradle"
