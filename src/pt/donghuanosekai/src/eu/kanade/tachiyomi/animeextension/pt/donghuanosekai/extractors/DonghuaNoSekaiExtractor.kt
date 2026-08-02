@@ -1,7 +1,7 @@
 package eu.kanade.tachiyomi.animeextension.pt.donghuanosekai.extractors
 
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -12,59 +12,40 @@ class DonghuaNoSekaiExtractor(
     private val headers: Headers,
 ) {
     fun videosFromDocument(document: Document): List<Video> {
+        val bloggerExtractor by lazy { BloggerExtractor(client) }
+        val dailymotionExtractor by lazy { DailymotionExtractor(client, headers) }
+
         val iframe = document.selectFirst("iframe")
         val playerId = document.location().toHttpUrl()
             .queryParameter("type")
             ?.toIntOrNull()?.plus(1) ?: 1
         val playerName = "Player $playerId"
 
-        return when (iframe) {
-            null -> {
-                val source = document.selectFirst("video > source") ?: return emptyList()
-                val quality = source.attr("size") + "p"
-                val url = source.attr("src")
+        if (iframe == null) {
+            val source = document.selectFirst("video > source") ?: return emptyList()
+            val quality = source.attr("size") + "p"
+            val url = source.attr("src")
+
+            return listOf(Video(url, "$playerName - $quality", url, headers))
+        }
+
+        val iframeUrl = iframe.attr("src")
+
+        return when {
+            "m3u8" in iframeUrl -> {
+                val url = iframeUrl.toHttpUrl().run {
+                    queryParameter("v") ?: queryParameter("id") ?: queryParameter("url")?.trim()
+                } ?: return emptyList()
+
+                val quality = url.substringAfter("_").substringBefore("_")
                 listOf(Video(url, "$playerName - $quality", url, headers))
             }
-            else -> {
-                val iframeUrl = iframe.attr("src")
-                when {
-                    iframeUrl.contains("nativov2.php") || iframeUrl.contains("/embed2/") -> {
-                        val url = iframeUrl.toHttpUrl().run {
-                            queryParameter("id") ?: queryParameter("v")
-                        } ?: return emptyList()
-
-                        val quality = url.substringAfter("_").substringBefore("_")
-                        listOf(Video(url, "$playerName - $quality", url, headers))
-                    }
-                    else -> getVideosFromIframeUrl(iframeUrl, playerName)
-                }
+            "dailymotion" in iframeUrl -> dailymotionExtractor.videosFromUrl(iframeUrl)
+            "blogger" in iframeUrl -> bloggerExtractor.videosFromUrl(iframeUrl, headers)
+            "blogspot" in iframeUrl -> {
+                bloggerExtractor.videosFromUrl("https://www.blogger.com/video.g?token=$iframeUrl", headers)
             }
-        }
-    }
 
-    private fun getVideosFromIframeUrl(iframeUrl: String, playerName: String): List<Video> {
-        return when {
-            iframeUrl.contains("playerB.php") -> {
-                client.newCall(GET(iframeUrl, headers)).execute().body.string()
-                    .substringAfter("sources:")
-                    .substringBefore("]")
-                    .split("{")
-                    .drop(1)
-                    .map { line ->
-                        val url = line.substringAfter("file: \"").substringBefore('"')
-                        val quality = line.substringAfter("label: \"")
-                            .substringBefore('"')
-                            .run {
-                                when (this) {
-                                    "SD" -> "480p"
-                                    "HD" -> "720p"
-                                    "FHD", "FULLHD" -> "1080p"
-                                    else -> this
-                                }
-                            }
-                        Video(url, "$playerName - $quality", url, headers)
-                    }
-            }
             else -> emptyList()
         }
     }
