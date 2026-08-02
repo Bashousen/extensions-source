@@ -56,11 +56,11 @@ class DonghuaNoSekai : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     // ============================== Popular ===============================
     override fun popularAnimeRequest(page: Int) = GET(baseUrl, headers)
 
-    override fun popularAnimeSelector() = "div.sidebarContent div.navItensTop li > a"
+    override fun popularAnimeSelector() = ".postSlider .itemS > a"
 
     override fun popularAnimeFromElement(element: Element) = SAnime.create().apply {
         setUrlWithoutDomain(element.attr("href"))
-        title = element.attr("title")
+        title = element.selectFirst("h2")?.text() ?: element.attr("title")
         thumbnail_url = element.selectFirst("img")?.attr("src")
     }
 
