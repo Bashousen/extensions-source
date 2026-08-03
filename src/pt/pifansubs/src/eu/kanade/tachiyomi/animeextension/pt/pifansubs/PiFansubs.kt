@@ -22,8 +22,18 @@ class PiFansubs : DooPlay(
     override val prefQualityValues = arrayOf("360p", "480p", "720p", "1080p")
     override val prefQualityEntries = prefQualityValues
 
+    // =============================== Latest ===============================
+    override fun latestUpdatesRequest(page: Int) = GET("$baseUrl/episodios/page/$page", headers)
+
     // ============================== Popular ===============================
     override fun popularAnimeSelector(): String = "div#featured-titles div.poster"
+
+    // =========================== Anime Details ============================
+    override fun Document.getDescription(): String {
+        return select("$additionalInfoSelector p")
+            .eachText()
+            .joinToString("\n\n") + "\n"
+    }
 
     // ============================ Video Links =============================
     override fun videoListParse(response: Response): List<Video> {
@@ -52,13 +62,4 @@ class PiFansubs : DooPlay(
         }
     }
 
-    // =========================== Anime Details ============================
-    override fun Document.getDescription(): String {
-        return select("$additionalInfoSelector p")
-            .eachText()
-            .joinToString("\n\n") + "\n"
-    }
-
-    // =============================== Latest ===============================
-    override fun latestUpdatesRequest(page: Int) = GET("$baseUrl/episodios/page/$page", headers)
 }
