@@ -51,7 +51,7 @@ class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
 
     override val name = "Tomato"
 
-    override val baseUrl = "https://edge.betomato.com"
+    override val baseUrl = "https://prod-api.tomatoanimes.com"
 
     override val lang = "pt-BR"
 
