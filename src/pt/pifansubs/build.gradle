@@ -10,5 +10,8 @@ ext {
 apply from: "$rootDir/common.gradle"
 
 dependencies {
-    implementation(project(':lib:streamhidevid-extractor'))
+    implementation(project(':lib:vidhide-extractor'))
+    implementation(project(':lib:abyss-extractor'))
+    implementation(project(':lib:filemoon-extractor'))
+    implementation(project(':lib:dailymotion-extractor'))
 }
