@@ -81,7 +81,7 @@ class PiFansubs : DooPlay(
             "dailymotion" in url -> dailymotionExtractor.videosFromUrl(url)
             "tabvid" in url -> abyssExtractor.videosFromUrl(url, headers)
             "vidhide" in url -> vidHideExtractor.videosFromUrl(url)
-            "luluvid" in url ->  vidHideExtractor.videosFromUrl(url, videoNameGen = { quality -> "Luluvid - $quality" })
+            "luluvid" in url -> vidHideExtractor.videosFromUrl(url, videoNameGen = { quality -> "Luluvid - $quality" })
             "blembed" in url -> blembedExtractor.videosFromUrl(url)
             else -> emptyList<Video>()
         }
