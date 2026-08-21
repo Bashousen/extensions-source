@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.animeextension.pt.meusanimes
 
 import android.util.Log
+import eu.kanade.tachiyomi.animeextension.pt.meusanimes.extractors.MeusAnimesExtractor
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
@@ -9,6 +10,7 @@ import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
+import eu.kanade.tachiyomi.util.parallelFlatMapBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -258,22 +260,30 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Parse video list from episode page
     override fun videoListParse(response: Response): List<Video> {
-        val bloggerExtractor by lazy { BloggerExtractor(client) }
-        val html = response.body.string()
-        val slug = response.request.url.pathSegments[1]
+        val meusAnimesExtractor by lazy { MeusAnimesExtractor(client, headers) }
+        val m3u8Integration by lazy { M3u8Integration(client) }
 
-        // 2. Enhanced regex to capture links anywhere in JSON
-        val videoRegex = """\\"$slug\\",\\"player_leg\\":\\"([^\\]*)\\",\\"player_dub\\":\\"([^\\]*)""".toRegex()
-        val groups = videoRegex.find(html)?.groupValues ?: return emptyList()
-        val legMatch = groups[1].takeIf { it.isNotEmpty() }
-        val dubMatch = groups[2].takeIf { it.isNotEmpty() }
+        val doc = response.asJsoup()
+        val players = doc.select(".abaPlayer")
 
-        return listOfNotNull(legMatch, dubMatch)
-            .flatMap { url ->
-                val suffix = "Legendado".takeIf { url == legMatch } ?: "Dublado"
+        if (players.isEmpty()) {
+            val url = doc.selectFirst("iframe")?.attr("src") ?: return emptyList()
+            val videos = meusAnimesExtractor.getVideosFromUrl(url, "legendado")
 
-                bloggerExtractor.videosFromUrl(url, headers, suffix)
+            return m3u8Integration.processVideoList(videos)
+        }
+
+        val videos = players.parallelFlatMapBlocking { player ->
+            val url = player.attr("data-url")
+            val prefix = player.text().lowercase()
+
+            when {
+                "meusanimes" in url -> meusAnimesExtractor.getVideosFromUrl(url, prefix)
+                else -> emptyList()
             }
+        }
+
+        return m3u8Integration.processVideoList(videos)
     }
 
     // ============================= Utilities ==============================
