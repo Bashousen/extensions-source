@@ -59,29 +59,30 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Latest updates use same parsing as popular
     override fun latestUpdatesParse(response: Response): AnimesPage {
-        val jsonString = response.body.string()
-        val json = Json.decodeFromString<Data>(jsonString)
+        val doc = response.asJsoup()
+        val episodes = doc.select("#listaEpisodesGrid a")
 
-        val animes = json.data.map { anime ->
+        val animes = episodes.map { element ->
             SAnime.create().apply {
-                title = "${anime.animeName} ${anime.name}"
-                url = "/episodio/${anime.slug}/"
-                thumbnail_url = anime.background
-                    .takeIf { !it.isNullOrBlank() }
-                    ?.let { "https://image.tmdb.org/t/p/w500$it" }
-                    ?: "https://image.tmdb.org/t/p/w500${anime.animePoster}"
+                val epNum = element.selectFirst(".epNum")?.text() ?: ""
+                val epName = element.selectFirst(".epNome")?.text() ?: ""
+
+                title = "$epName - $epNum"
+                url = element.attr("href")
+                thumbnail_url = element.selectFirst("img")
+                    ?.attr("abs:src")
 
                 initialized = false
             }
         }
 
-        val hasNextPage = json.pagination.page <= json.pagination.totalPages
+        val hasNextPage = doc.selectFirst("#paginationWrap a:last-child")?.hasAttr("title") ?: false
 
         return AnimesPage(animes, hasNextPage)
     }
 
     override fun latestUpdatesRequest(page: Int): Request =
-        GET("$baseUrl/api/public/recent-episodes?page=$page", headers)
+        GET("$baseUrl/lista-de-episodios?page=$page", headers)
 
     // Parse search results from API
     override fun searchAnimeParse(response: Response): AnimesPage {
