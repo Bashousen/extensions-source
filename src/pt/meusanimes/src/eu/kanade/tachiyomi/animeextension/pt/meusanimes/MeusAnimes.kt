@@ -7,7 +7,6 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
-import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
 import kotlinx.serialization.json.Json
@@ -38,7 +37,7 @@ class MeusAnimes : AnimeHttpSource() {
         filters: AnimeFilterList,
     ): Request {
         val q = URLEncoder.encode(query, "UTF-8")
-        return GET("$baseUrl/api/animes?search=$q", headers)
+        return GET("$baseUrl/api/search?query=$q", headers)
     }
 
     // Parse Lists: Parse popular anime list
@@ -96,11 +95,10 @@ class MeusAnimes : AnimeHttpSource() {
 
             SAnime.create().apply {
                 title = obj.optString("name")
-                url = "/anime/${obj.optString("slug")}"
+                url = obj.optString("url")
 
                 thumbnail_url = obj.optString("poster")
-                    .takeIf { it.isNotBlank() }
-                    ?.let { "https://image.tmdb.org/t/p/w500$it" }
+                    .takeIf { it.isNotEmpty() } ?: ""
 
                 initialized = true
             }
