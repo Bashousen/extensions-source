@@ -209,7 +209,7 @@ class M3u8HttpServer(
         session.headers.forEach { (key, value) ->
             when (key.lowercase()) {
                 "user-agent", "referer", "origin", "accept", "accept-language",
-                "accept-encoding", "connection", "cache-control", "pragma",
+                "connection", "cache-control", "pragma", //remove "accept-encoding" to work on Dantotsu
                     -> {
                     headers[key.lowercase()] = value
                 }
