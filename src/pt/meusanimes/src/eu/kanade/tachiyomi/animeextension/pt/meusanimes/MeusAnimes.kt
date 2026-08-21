@@ -111,31 +111,6 @@ class MeusAnimes : AnimeHttpSource() {
     // No filters implemented
     override fun getFilterList(): AnimeFilterList = AnimeFilterList()
 
-    // Anime Details: Extract anime data from script tag in page
-    private fun extractAnimeData(document: Document): JSONObject? {
-        return runCatching {
-            val scriptContent = document.select("script")
-                .map { it.data() }
-                .firstOrNull { it.contains("animeData") }
-                ?: return null
-
-            val startToken = "\\\"animeData\\\":{"
-            val startIdx = scriptContent.indexOf(startToken)
-            if (startIdx == -1) return null
-
-            val jsonStart = startIdx + startToken.length - 1
-            val endIdx = scriptContent.indexOf("]}}]", jsonStart) + 2
-
-            val fragment = scriptContent.substring(jsonStart, endIdx)
-
-            val cleanedJson = fragment
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\")
-
-            JSONObject(cleanedJson)
-        }.getOrNull()
-    }
-
     // Parse core anime data from JSON
     private fun parseAnimeCore(json: JSONObject): CoreAnimeData {
         val title = json.optString("name")
@@ -245,22 +220,35 @@ class MeusAnimes : AnimeHttpSource() {
         initialized = true
     }
 
+    // Episode Details: Extract anime data from script tag in page
+    private fun extractEpisodeData(url: String): List<Episode>? {
+        val json by lazy { Json { ignoreUnknownKeys = true } }
+
+        val newHeaders = headers.newBuilder()
+            .set("x-requested-with", "XMLHttpRequest")
+            .set("Referer", baseUrl)
+            .build()
+
+        return runCatching {
+            val jsonString = client.newCall(GET("$url/data", newHeaders)).execute().body.string()
+            val anime = json.decodeFromString<Anime>(jsonString)
+            anime.data.episodes
+        }.getOrNull()
+    }
+
     // Episodes: Parse episode list from JSON data
     override fun episodeListParse(response: Response): List<SEpisode> {
-        val document = getRealAnimeDoc(response.asJsoup())
-        val json = extractAnimeData(document) ?: return emptyList()
-        val episodes = json.optJSONArray("Episode") ?: return emptyList()
+        val animeUrl = getRealAnimeUrl(response) ?: return emptyList()
+        val episodes = extractEpisodeData(animeUrl) ?: return emptyList()
 
-        return (0 until episodes.length())
-            .map { i ->
-                val obj = episodes.getJSONObject(i)
+        return episodes
+            .map { episode ->
                 SEpisode.create().apply {
-                    name = obj.optString("name")
-                    episode_number = obj.optDouble("episodeNumber").toFloat()
-                    url = "/episodio/${obj.optString("slug")}"
+                    name = "Temporada ${episode.season} x ${episode.number}"
+                    episode_number = episode.number.toFloat()
+                    url = episode.url
                 }
-            }
-            .sortedByDescending { it.episode_number }
+            }.reversed()
     }
 
     // Videos: Video list request
@@ -290,6 +278,19 @@ class MeusAnimes : AnimeHttpSource() {
 
     // ============================= Utilities ==============================
 
+    private val animeMenuSelector = ".episodio_controles_players a:has(#lista_ep)"
+
+    private fun getRealAnimeUrl(response: Response): String? {
+        val url = response.request.url.toString()
+
+        return when {
+            "/anime/" in url -> url
+            else -> response.asJsoup()
+                .selectFirst(animeMenuSelector)
+                ?.attr("abs:href")
+        }
+    }
+
     /**
      * If the document comes from a episode page, this function will get the
      * real/expected document from the anime details page. else, it will return the
@@ -299,14 +300,10 @@ class MeusAnimes : AnimeHttpSource() {
      */
     private fun getRealAnimeDoc(document: Document): Document {
         val url = document.location()
-        val regex = "-s[0-9]+-e[0-9]+".toRegex()
-
         Log.d("getRealAnimeDoc", url)
 
         return if ("/anime" !in url) {
-            val animeUrl = url
-                .replace("episodio", "anime")
-                .replace(regex, "")
+            val animeUrl = document.selectFirst(animeMenuSelector)!!.attr("abs:href")
             val req = client.newCall(GET(animeUrl, headers)).execute()
             req.asJsoup()
         } else {
