@@ -29,7 +29,7 @@ class MeusAnimes : AnimeHttpSource() {
 
     // Requests: Popular anime request
     override fun popularAnimeRequest(page: Int): Request =
-        GET("$baseUrl/populares?page=$page", headers)
+        GET(baseUrl, headers)
 
     // Search anime request
     override fun searchAnimeRequest(
@@ -44,10 +44,10 @@ class MeusAnimes : AnimeHttpSource() {
     // Parse Lists: Parse popular anime list
     override fun popularAnimeParse(response: Response): AnimesPage {
         val document = response.asJsoup()
-        val animes = document.select("div.grid > div > a[href^=\"/anime/\"]")
+        val animes = document.select(".top10_ani a")
             .map { element ->
                 SAnime.create().apply {
-                    title = element.select("h3.text-white").text()
+                    title = element.select(".top10_ani_title").text()
                     url = element.attr("href")
                     thumbnail_url = element.selectFirst("img")
                         ?.attr("abs:src")
