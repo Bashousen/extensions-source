@@ -183,21 +183,18 @@ class MeusAnimes : AnimeHttpSource() {
     // Main anime details parser
     override fun animeDetailsParse(response: Response): SAnime {
         val document = getRealAnimeDoc(response.asJsoup())
-        val json = extractAnimeData(document)
-            ?: return parseAnimeFromMeta(document)
-
-        val core = parseAnimeCore(json)
 
         return SAnime.create().apply {
-            title = core.title
-            artist = core.altTitle
-            description = core.description
-            status = core.status
+            title = document.selectFirst(".anime_titulo")?.text() ?: ""
+            description = document.selectFirst("#sinopse_content")?.text() ?: ""
+            thumbnail_url = document.selectFirst(".anime_thumb_left > img")?.attr("src") ?: ""
 
-            thumbnail_url = json.optString("poster")
-                .takeIf { it.isNotBlank() }
-                ?.let { "https://image.tmdb.org/t/p/w500$it" }
-                ?: document.select("meta[property=og:image]").attr("content")
+            val statusString = document.selectFirst(".anime_status > span:last-child")?.text() ?: ""
+            status = when (statusString.lowercase()) {
+                "completo" -> SAnime.COMPLETED
+                "em lançamento" -> SAnime.ONGOING
+                else -> SAnime.UNKNOWN
+            }
 
             initialized = true
         }
