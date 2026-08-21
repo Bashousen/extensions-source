@@ -113,50 +113,6 @@ class MeusAnimes : AnimeHttpSource() {
     // No filters implemented
     override fun getFilterList(): AnimeFilterList = AnimeFilterList()
 
-    // Parse core anime data from JSON
-    private fun parseAnimeCore(json: JSONObject): CoreAnimeData {
-        val title = json.optString("name")
-
-        val altTitle = json.optString("nameOriginal")
-            .takeIf { it.isNotBlank() }
-
-        val description = json.optString("sinopse")
-            .trim()
-            .ifBlank { "Sinopse não disponível." }
-
-        val status = when {
-            json.optString("diaLancamento").isNotBlank() ->
-                SAnime.ONGOING
-            json.optInt("episodios") > 0 ->
-                SAnime.COMPLETED
-            else ->
-                SAnime.UNKNOWN
-        }
-
-        return CoreAnimeData(
-            title = title,
-            altTitle = altTitle,
-            description = description,
-            status = status,
-        )
-    }
-
-    // Fallback: parse anime details from meta tags
-    private fun parseAnimeFromMeta(document: Document): SAnime = SAnime.create().apply {
-        title = document.select("meta[property=og:title]").attr("content")
-        description = document.select("meta[name=description]").attr("content")
-        thumbnail_url = document.select("meta[property=og:image]").attr("content")
-        initialized = true
-    }
-
-    // Data class for core anime information
-    private data class CoreAnimeData(
-        val title: String,
-        val altTitle: String?,
-        val description: String,
-        val status: Int,
-    )
-
     // Main anime details parser
     override fun animeDetailsParse(response: Response): SAnime {
         val document = getRealAnimeDoc(response.asJsoup())
@@ -177,52 +133,7 @@ class MeusAnimes : AnimeHttpSource() {
         }
     }
 
-    // Alternative JSON parser (not used in current implementation)
-    private fun parseAnimeFromJson(
-        json: JSONObject,
-        document: Document,
-    ): SAnime = SAnime.create().apply {
-        title = json.optString("name")
-
-        // Studio
-        author = json.optJSONObject("Studio")
-            ?.optString("name")
-
-        // Original title goes to "artist" field (Tachiyomi standard)
-        artist = json.optString("nameOriginal").takeIf { it.isNotBlank() }
-
-        val year = json.optInt("ano").takeIf { it > 0 }
-        val synopsis = json.optString("sinopse")
-
-        description = buildString {
-            if (year != null) append("Ano: $year\n\n")
-            append(synopsis)
-        }
-
-        genre = json.optJSONArray("Animegenero")
-            ?.let { arr ->
-                (0 until arr.length()).mapNotNull { i ->
-                    arr.getJSONObject(i)
-                        .optJSONObject("Genero")
-                        ?.optString("name")
-                }.joinToString(", ")
-            }
-
-        status = when (json.optString("status").lowercase()) {
-            "ended", "finalizado", "completo" -> SAnime.COMPLETED
-            "releasing", "em lançamento", "andamento" -> SAnime.ONGOING
-            else -> SAnime.UNKNOWN
-        }
-
-        thumbnail_url = json.optString("poster")
-            .takeIf { it.isNotBlank() }
-            ?.let { "https://image.tmdb.org/t/p/w500$it" }
-            ?: document.select("meta[property=og:image]").attr("content")
-
-        initialized = true
-    }
-
-    // Episode Details: Extract anime data from script tag in page
+    // Episode Details: Extract episode details
     private fun extractEpisodeData(url: String): List<Episode>? {
         val json by lazy { Json { ignoreUnknownKeys = true } }
 
