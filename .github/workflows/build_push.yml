@@ -34,7 +34,7 @@ jobs:
       - name: Get number of modules
         run: |
           set -x
-          projects=(src/*/*)
+          projects=(src/pt/*)
           echo "NUM_INDIVIDUAL_MODULES=${#projects[@]}" >> "$GITHUB_ENV"
 
       - name: Find lib changes

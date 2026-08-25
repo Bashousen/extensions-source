@@ -45,6 +45,7 @@ fun File.getChunk(chunk: Int, chunkSize: Int): List<File>? {
     return listFiles()
         // Lang folder
         ?.filter { it.isDirectory }
+        ?.filter { it.name == "pt" }
         // Extension subfolders
         ?.mapNotNull { dir -> dir.listFiles()?.filter { it.isDirectory } }
         ?.flatten()
