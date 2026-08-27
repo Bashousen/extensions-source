@@ -19,14 +19,15 @@ class AnimeItoExtractor(private val client: OkHttpClient, private val headers: H
 
         val arguments = REGEX_ARGUMENTS.find(encodedScript)?.groupValues ?: return emptyList()
 
-        val charDictionary: List<String> = Json.decodeFromString(arguments[1])
-        val charIndices: List<Int> = Json.decodeFromString(arguments[2])
-        val xorKeyBase64: String = arguments[3]
+        val dictionary: List<String> = Json.decodeFromString(arguments[1])
+        val indices: List<Int> = Json.decodeFromString(arguments[2])
+        val xorKey: String = arguments[3]
 
-        val decodedScript = decodeScript(charDictionary, charIndices, xorKeyBase64)
+        val decodedScript = decodeScript(dictionary, indices, xorKey)
 
         return if ("googlevideo" in decodedScript) {
-            decodedScript.substringAfter("sources\":").substringBefore("]")
+            decodedScript.substringAfter("sources\":")
+                .substringBefore("]")
                 .split("{")
                 .drop(1)
                 .map {
@@ -43,21 +44,20 @@ class AnimeItoExtractor(private val client: OkHttpClient, private val headers: H
         }
     }
 
-    private fun decodeScript(charDictionary: List<String>, charIndices: List<Int>, xorKeyBase64: String): String {
-        val base64String = charIndices.joinToString("") { i -> charDictionary[i] }
-        val encodedPayload = String(Base64.decode(base64String, Base64.DEFAULT), Charsets.ISO_8859_1)
-        val xorKey = String(Base64.decode(xorKeyBase64, Base64.DEFAULT), Charsets.ISO_8859_1)
+    private fun decodeScript(dictionary: List<String>, indices: List<Int>, xorKeyBase64: String): String {
+        val base64String = indices.joinToString("") { i -> dictionary[i] }
+        val encodedPayload = Base64.decode(base64String, Base64.DEFAULT)
+        val xorKey = Base64.decode(xorKeyBase64, Base64.DEFAULT)
 
-        val decodedBytes = ByteArray(encodedPayload.length)
+        val decodedBytes = ByteArray(encodedPayload.size)
         for (i in encodedPayload.indices) {
             decodedBytes[i] = (
-                encodedPayload[i].code xor
-                    xorKey[i % xorKey.length].code
+                encodedPayload[i].toInt() xor
+                    xorKey[i % xorKey.size].toInt()
                 ).toByte()
         }
-        val decodedScript = String(decodedBytes, Charsets.UTF_8)
 
-        return decodedScript
+        return String(decodedBytes, Charsets.UTF_8)
     }
 
     companion object {
