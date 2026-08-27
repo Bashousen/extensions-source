@@ -134,7 +134,7 @@ class MeusAnimes : AnimeHttpSource() {
     }
 
     // Episode Details: Extract episode details
-    private fun extractEpisodeData(url: String): List<Episode>? {
+    private fun extractEpisodeData(url: String): List<Episode> {
         val json by lazy { Json { ignoreUnknownKeys = true } }
 
         val newHeaders = headers.newBuilder()
@@ -142,17 +142,16 @@ class MeusAnimes : AnimeHttpSource() {
             .set("Referer", baseUrl)
             .build()
 
-        return runCatching {
-            val jsonString = client.newCall(GET("$url/data", newHeaders)).execute().body.string()
-            val anime = json.decodeFromString<Anime>(jsonString)
-            anime.data.episodes
-        }.getOrNull()
+        val jsonString = client.newCall(GET("$url/data", newHeaders)).execute().body.string()
+        val anime = json.decodeFromString<Anime>(jsonString)
+
+        return anime.data.episodes
     }
 
     // Episodes: Parse episode list from JSON data
     override fun episodeListParse(response: Response): List<SEpisode> {
         val animeUrl = getRealAnimeUrl(response) ?: return emptyList()
-        val episodes = extractEpisodeData(animeUrl) ?: return emptyList()
+        val episodes = extractEpisodeData(animeUrl)
 
         return episodes
             .map { episode ->

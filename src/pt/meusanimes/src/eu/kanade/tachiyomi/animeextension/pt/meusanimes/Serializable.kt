@@ -14,13 +14,7 @@ data class Data(
 
 @Serializable
 data class Episode(
-    val id: Int,
     val number: Int,
     val season: Int,
-    val name: String,
-    val title: String,
-    val thumb: String,
-    val backdrop_path: String,
-    val slug: String,
     val url: String,
 )
