@@ -14,7 +14,7 @@ class AnimeItoExtractor(private val client: OkHttpClient, private val headers: H
 
     fun videosFromUrl(url: String): List<Video> {
         val playerDoc = client.newCall(GET(url, headers)).execute().asJsoup()
-        val encodedScript = playerDoc.selectFirst("[type=\"text/javascript\"]")
+        val encodedScript = playerDoc.selectFirst("[type=\"text/javascript\"]:nth-child(3)")
             ?.data() ?: return emptyList()
 
         val arguments = REGEX_ARGUMENTS.find(encodedScript)?.groupValues ?: return emptyList()
