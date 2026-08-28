@@ -174,7 +174,7 @@ class Goyabu : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
         val scriptText = script.data()
         val jsonString = scriptText
-            .substringAfter("const allEpisodes =")
+            .substringAfter("const allEpisodes=")
             .substringBefore(";")
             .trim()
 
