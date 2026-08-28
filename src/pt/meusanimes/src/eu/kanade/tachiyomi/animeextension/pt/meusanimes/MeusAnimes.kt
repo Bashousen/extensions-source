@@ -176,20 +176,22 @@ class MeusAnimes : AnimeHttpSource() {
         val doc = response.asJsoup()
         val players = doc.select(".abaPlayer")
 
-        if (players.isEmpty()) {
-            val url = doc.selectFirst("iframe")?.attr("src") ?: return emptyList()
-            val videos = meusAnimesExtractor.getVideosFromUrl(url, "legendado")
+        val videos = when {
+            players.isEmpty() -> {
+                val url = doc.selectFirst("iframe")?.attr("src") ?: return emptyList()
+                meusAnimesExtractor.getVideosFromUrl(url, "Legendado")
+            }
 
-            return m3u8Integration.processVideoList(videos)
-        }
+            else -> {
+                players.parallelFlatMapBlocking { player ->
+                    val url = player.attr("data-url")
+                    val prefix = player.text().lowercase().replaceFirstChar { it.uppercase() }
 
-        val videos = players.parallelFlatMapBlocking { player ->
-            val url = player.attr("data-url")
-            val prefix = player.text().lowercase()
-
-            when {
-                "meusanimes" in url -> meusAnimesExtractor.getVideosFromUrl(url, prefix)
-                else -> emptyList()
+                    when {
+                        "meusanimes" in url -> meusAnimesExtractor.getVideosFromUrl(url, prefix)
+                        else -> emptyList()
+                    }
+                }
             }
         }
 
