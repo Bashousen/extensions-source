@@ -22,7 +22,7 @@ import org.jsoup.nodes.Element
 class AnimeQ : DooPlay(
     "pt-BR",
     "AnimeQ",
-    "https://animeq.net",
+    "https://animeq.cloud",
 ) {
     // ============================== Popular ===============================
     override fun popularAnimeRequest(page: Int) = GET("$baseUrl/anime", headers)
