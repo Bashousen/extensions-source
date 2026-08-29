@@ -141,7 +141,7 @@ class AnimeFire : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun episodeFromElement(element: Element) = SEpisode.create().apply {
         val url = element.attr("href")
         setUrlWithoutDomain(url)
-        name = element.text()
+        name = element.text().substringAfterLast("-").trim()
         episode_number = url.substringAfterLast("/").toFloatOrNull() ?: 0F
     }
 
