@@ -69,11 +69,13 @@ class AnimeQ : DooPlay(
             ?: ""
     }
 
-    fun Document.getAlternativeTitle(): String {
-        return select("$additionalInfoSelector p")
-            .first { it.text().contains("Título Alternativo") }
-            ?.let { it.text() + "\n" }
-            ?: ""
+    private fun Document.getAlternativeTitle(): String {
+        return runCatching {
+            select("$additionalInfoSelector p")
+                .first { it.text().contains("Título Alternativo") }
+                ?.let { it.text() + "\n" }
+                ?: ""
+        }.getOrElse { "" }
     }
 
     override fun animeDetailsParse(document: Document): SAnime {
