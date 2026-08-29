@@ -22,7 +22,7 @@ import org.jsoup.nodes.Element
 class AnimesDrive : DooPlay(
     "pt-BR",
     "Animes Drive",
-    "https://animesdrive.online",
+    "https://animesdrive.cloud/",
 ) {
     // ============================== Popular ===============================
     override fun popularAnimeRequest(page: Int) = GET("$baseUrl/anime", headers)
