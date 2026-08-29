@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.lib.bloggerextractor.BloggerExtractor
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.util.asJsoup
+import eu.kanade.tachiyomi.util.parallelMapBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Request
 import okhttp3.Response
@@ -57,15 +58,7 @@ class AnimeFire : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     override fun latestUpdatesFromElement(element: Element) = SAnime.create().apply {
         val url = element.attr("href")
-        // get anime url from episode url
-        when (url.substringAfterLast("/").toIntOrNull()) {
-            null -> setUrlWithoutDomain(url)
-            else -> {
-                val substr = url.substringBeforeLast("/")
-                setUrlWithoutDomain("$substr-todos-os-episodios")
-            }
-        }
-
+        setUrlWithoutDomain(url)
         title = element.selectFirst("h3.animeTitle")!!.text()
         thumbnail_url = element.selectFirst("img")?.attr("data-src")
     }
@@ -111,10 +104,12 @@ class AnimeFire : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
 
     // =========================== Anime Details ============================
     override fun animeDetailsParse(document: Document) = SAnime.create().apply {
-        val content = document.selectFirst("div.divDivAnimeInfo")!!
+        val doc = getRealAnimeDoc(document)
+
+        val content = doc.selectFirst("div.divDivAnimeInfo")!!
         val names = content.selectFirst("div.div_anime_names")!!
         val infos = content.selectFirst("div.divAnimePageInfo")!!
-        setUrlWithoutDomain(document.location())
+        setUrlWithoutDomain(doc.location())
         thumbnail_url = content.selectFirst("div.sub_animepage_img > img")?.attr("data-src")
         title = names.selectFirst("h1")!!.text()
         genre = infos.select("a.spanGeneros").eachText().joinToString()
@@ -135,7 +130,13 @@ class AnimeFire : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     }
 
     // ============================== Episodes ==============================
-    override fun episodeListParse(response: Response) = super.episodeListParse(response).reversed()
+    override fun episodeListParse(response: Response): List<SEpisode> {
+        val doc = getRealAnimeDoc(response.asJsoup())
+
+        return doc.select(episodeListSelector())
+            .parallelMapBlocking(::episodeFromElement)
+            .reversed()
+    }
     override fun episodeListSelector(): String = "div.div_video_list > a"
 
     override fun episodeFromElement(element: Element) = SEpisode.create().apply {
@@ -184,6 +185,19 @@ class AnimeFire : ConfigurableAnimeSource, ParsedAnimeHttpSource() {
     override fun getFilterList(): AnimeFilterList = AFFilters.FILTER_LIST
 
     // ============================= Utilities ==============================
+
+    private fun getRealAnimeDoc(doc: Document): Document {
+        val url = doc.location()
+
+        if ("-todos-os-episodios" !in url) {
+            val substr = url.substringBeforeLast("/")
+            return client.newCall(GET("$substr-todos-os-episodios")).execute()
+                .asJsoup()
+        } else {
+            return doc
+        }
+    }
+
     private fun parseStatus(statusString: String?): Int {
         return when (statusString?.trim()) {
             "Completo" -> SAnime.COMPLETED
