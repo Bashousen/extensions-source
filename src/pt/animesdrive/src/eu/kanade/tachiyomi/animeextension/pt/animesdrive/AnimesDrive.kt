@@ -143,16 +143,19 @@ class AnimesDrive : DooPlay(
     // ============================ Video Links =============================
     override fun videoListParse(response: Response): List<Video> {
         val document = response.asJsoup()
-        val players = document.select("ul#playeroptionsul li")
-        return players.parallelCatchingFlatMapBlocking(::getPlayerVideos)
+        val players = document.select(".animeq-player__media > [class^='animeq-player']")
+        val servers = document.select(".animeq-player__server")
+
+        return players.zip(servers)
+            .parallelCatchingFlatMapBlocking { (player, server) -> getPlayerVideos(player, server) }
     }
 
     private val bloggerExtractor by lazy { BloggerExtractor(client) }
     private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
 
-    private fun getPlayerVideos(player: Element): List<Video> {
-        val name = player.selectFirst("span.title")!!.text()
-            .run {
+    private fun getPlayerVideos(player: Element, server: Element): List<Video> {
+        val name = server.selectFirst("span:last-child")?.text()
+            ?.run {
                 when (this.uppercase()) {
                     "SD" -> "360p"
                     "HD" -> "720p"
@@ -160,24 +163,24 @@ class AnimesDrive : DooPlay(
                     "FHD", "FULLHD", "FULLHD / HLS" -> "1080p"
                     else -> this
                 }
-            }
+            } ?: "Video"
 
-        val url = getPlayerUrl(player)
+        val url = when (player.tagName()) {
+            "iframe" -> player.attr("src")
+            "video" -> player.selectFirst("source")?.attr("src") ?: return emptyList()
+            "div" -> player.attr("data-video-src")
+            else -> return emptyList()
+        }
 
         val videos = when {
             "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
-            "jwplayer?source=" in url -> {
-                val videoUrl = url.toHttpUrl().queryParameter("source") ?: return emptyList()
-
+            ".mp4" in url || ".m3u8" in url -> {
                 val videoHeaders = headers.newBuilder()
-                    .add("Accept", "*/*")
-                    .add("Host", videoUrl.toHttpUrl().host)
-                    .add("Origin", "https://${url.toHttpUrl().host}")
-                    .add("Referer", "https://${url.toHttpUrl().host}/")
+                    .set("Referer", "$baseUrl/")
                     .build()
 
                 return listOf(
-                    Video(videoUrl, "${videoUrl.toHttpUrl().host} - $name", videoUrl, videoHeaders),
+                    Video(url, name, url, videoHeaders),
                 )
             }
             "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
@@ -186,17 +189,6 @@ class AnimesDrive : DooPlay(
         }
 
         return videos
-    }
-
-    private fun getPlayerUrl(player: Element): String {
-        val type = player.attr("data-type")
-        val id = player.attr("data-post")
-        val num = player.attr("data-nume")
-        return client.newCall(GET("$baseUrl/wp-json/dooplayer/v2/$id/$type/$num"))
-            .execute().body.string()
-            .substringAfter("\"embed_url\":\"")
-            .substringBefore("\",")
-            .replace("\\", "")
     }
 
     // ============================== Filters ===============================
