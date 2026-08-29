@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.animeextension.pt.animeito.extractors
 
 import android.util.Base64
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.m3u8server.M3u8Integration
 import eu.kanade.tachiyomi.lib.playlistutils.PlaylistUtils
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.util.asJsoup
@@ -11,6 +12,7 @@ import okhttp3.OkHttpClient
 
 class AnimeItoExtractor(private val client: OkHttpClient, private val headers: Headers) {
     private val playlistUtils by lazy { PlaylistUtils(client, headers) }
+    private val m3u8Integration by lazy { M3u8Integration(client) }
 
     fun videosFromUrl(url: String): List<Video> {
         val playerDoc = client.newCall(GET(url, headers)).execute().asJsoup()
@@ -40,7 +42,9 @@ class AnimeItoExtractor(private val client: OkHttpClient, private val headers: H
                 .substringAfter("file\":\"")
                 .substringBefore('"')
 
-            playlistUtils.extractFromHls(masterPlaylistUrl, videoNameGen = { "Animei.to - $it" })
+            val videos = playlistUtils.extractFromHls(masterPlaylistUrl, videoNameGen = { "Animei.to - $it" })
+
+            m3u8Integration.processVideoList(videos)
         }
     }
 
