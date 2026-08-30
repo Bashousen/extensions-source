@@ -186,24 +186,21 @@ class SushiAnimes : ParsedAnimeHttpSource() {
     }
 
     private fun getPLayerVideos(player: Element): List<Video> {
-        val url = getPlayerUrl(player).takeIf { !it.isNullOrEmpty() } ?: return emptyList()
+        val url = getPlayerUrl(player) ?: return emptyList()
 
         return when {
-            "cdn-s01.pixel-sus-4k-image.com" in url -> {
+            "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
+            url.endsWith(".mp4") -> {
                 val videoHeaders = headers.newBuilder().set("Referer", "$baseUrl/").build()
                 listOf(Video(url, "Sushi Animes", url, videoHeaders))
             }
-            "cdn.imagesskill.com" in url -> {
-                val newHeaders = headers.newBuilder().set("accept-encoding", "").build() // para funcionar no Dantotsu
+            url.endsWith(".m3u8") -> {
                 m3u8Integration.processVideoList(
                     listOf(
-                        Video(url, "Sushi Animes", url, newHeaders),
+                        Video(url, "Sushi Animes", url),
                     ),
                 )
             }
-
-            "blogger.com" in url -> bloggerExtractor.videosFromUrl(url, headers)
-
             else -> emptyList()
         }
     }
@@ -214,15 +211,16 @@ class SushiAnimes : ParsedAnimeHttpSource() {
             .add("id", id)
             .build()
         val request = POST("$baseUrl/ajax/embed", headers, formBody)
-        val response = client.newCall(request).execute().body.string()
+        val html = client.newCall(request).execute().body.string()
 
         return when {
-            "playerEmbed" in response ->
-                response
-                    .substringAfter("playerEmbed = \"", "")
+            "playerEmbed" in html ->
+                html
+                    .replace("&quot;", "\"")
+                    .substringAfter("playerEmbed=\"", "")
                     .substringBefore("\"")
 
-            "iframe" in response -> response.substringAfter("src=\"")
+            "iframe" in html -> html.substringAfter("src=\"")
                 .substringBefore("\"")
                 .toHttpUrl()
                 .queryParameter("src")
