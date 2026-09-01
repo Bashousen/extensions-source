@@ -139,6 +139,7 @@ abstract class DooPlay(
                 ?.text()
                 ?.toDate() ?: 0L
             name = "$episodeSeasonPrefix $seasonName x $epNum - $episodeName"
+            scanlator = "Season $seasonName"
             setUrlWithoutDomain(href.attr("href"))
         }
     }
