@@ -53,6 +53,7 @@ class BetterAnimeIo : DooPlay(
             episode_number = epNum.toFloatOrNull() ?: 0F
             name = "$episodeSeasonPrefix $seasonName x $epNum"
             setUrlWithoutDomain(link.attr("href"))
+            scanlator = "Season $seasonName"
 
             element.selectFirst(".timeAgo[data-time]")?.attr("data-time")?.let { dateStr ->
                 date_upload = parseIsoDate(dateStr)
