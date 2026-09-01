@@ -285,7 +285,7 @@ class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
                                 episode_number = episode.epNumber
                                 name = fullName
                                 url = "http://localhost?season=${season.seasonNumber}$newUrl"
-                                scanlator = getScanlatorInfo(season.seasonDubbed)
+                                scanlator = "Season ${season.seasonNumber}"
                             },
                         )
                     }
