@@ -269,7 +269,7 @@ class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
                     client.newCall(request).execute().parseAs<EpisodesResultDto>().data
 
                 episodes.forEach { episode ->
-                    val partName = "Temporada ${season.seasonNumber} x ${episode.epNumber}"
+                    val partName = "Temporada ${season.seasonNumber} x ${episode.epNumber.toInt()}"
                     val fullName = "$partName - ${episode.epName}"
 
                     val prev = episodeList.find { it.name.contains(partName) }
