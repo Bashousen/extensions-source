@@ -441,7 +441,7 @@ class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
     companion object {
         private val REGEX_QUALITY by lazy { Regex("""(\d+)p""") }
         private val TOKEN =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTMxNjUzODQsInV1aWQiOiI4N2VmNmNmMC1jMjFkLTExZWYtODAxNS01NzNlMjdjNWU4ZGIiLCJpYXQiOjE3MzUwNjMwNTd9.5JMhTqBjs4A3VxrIjNQqpXtJGJ5y8MJt-ARvFrjcYUo"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTYwMDEzNTYsInV1aWQiOiJiNjU1NTk5MC04ZWNlLTExZjEtOTRkZC1kNTgxNjM3NDEzOGUiLCJpYXQiOjE3ODc4NTU1OTB9.ELuz30Banf8kjyK6KDwWhPbqikwJ6pS9lNBFhznLZjQ"
 
         private const val PREF_QUALITY_KEY = "preferred_quality"
         private const val PREF_QUALITY_TITLE = "Qualidade preferida"
