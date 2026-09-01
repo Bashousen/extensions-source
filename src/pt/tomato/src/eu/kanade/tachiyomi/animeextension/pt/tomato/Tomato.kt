@@ -43,9 +43,9 @@ import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.seconds
 
 class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
 
@@ -75,7 +75,7 @@ class Tomato : ConfigurableAnimeSource, AnimeHttpSource() {
 
     override val client by lazy {
         network.client.newBuilder()
-            .rateLimit(5, 1.seconds)
+            .rateLimit(5, 1, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
