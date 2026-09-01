@@ -159,6 +159,7 @@ class MeusAnimes : AnimeHttpSource() {
                     name = "Temporada ${episode.season} x ${episode.number}"
                     episode_number = episode.number.toFloat()
                     url = episode.url
+                    scanlator = "Season ${episode.season}"
                 }
             }.reversed()
     }
