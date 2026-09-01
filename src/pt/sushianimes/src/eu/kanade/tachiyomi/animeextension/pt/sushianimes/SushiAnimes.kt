@@ -162,6 +162,7 @@ class SushiAnimes : ParsedAnimeHttpSource() {
                     name =
                         "Temporada ${season.seasonNumber} x ${episode.episodeNumber} - ${episode.name}"
                     episode_number = episode.episodeNumber.toFloatOrNull() ?: 0F
+                    scanlator = "Season ${season.seasonNumber}"
                 }
             }
         }
