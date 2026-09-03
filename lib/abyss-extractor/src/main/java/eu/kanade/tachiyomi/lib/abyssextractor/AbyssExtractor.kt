@@ -14,7 +14,9 @@ class AbyssExtractor(private val client: OkHttpClient) {
     private val cryptoHelper by lazy { CryptoHelper() }
 
     fun videosFromUrl(url: String, headers: Headers): List<Video> {
-        val html = client.newCall(GET(url)).execute().body!!.string()
+        val videoId = url.substringAfterLast("/")
+
+        val html = client.newCall(GET("$ABYSS_URL/$videoId")).execute().body.string()
         val medias = parseEncryptedMp4MetadataFromHtml(html) ?: return emptyList()
 
         if (medias.sources == null) {
@@ -22,7 +24,9 @@ class AbyssExtractor(private val client: OkHttpClient) {
             return emptyList()
         }
 
-        val videoHeaders = headers.newBuilder().set("Referer", "https://${url.toHttpUrl().host}/").build()
+        val videoHeaders = headers.newBuilder()
+            .set("Referer", "$ABYSS_URL/")
+            .build()
 
         return medias.sources.mapNotNull { source ->
             val quality = source?.label ?: return@mapNotNull null
@@ -51,7 +55,7 @@ class AbyssExtractor(private val client: OkHttpClient) {
         val encryptedMediaMetadata = mediaMetadata.media
 
         if (encryptedMediaMetadata == null) {
-            Log.e("", "failed to get encrypted media")
+            Log.e("", "Failed to get encrypted media")
             return null
         }
 
@@ -94,3 +98,5 @@ class AbyssExtractor(private val client: OkHttpClient) {
         return Gson().fromJson(this, T::class.java)
     }
 }
+
+private const val ABYSS_URL = "https://abyssplayer.com"
