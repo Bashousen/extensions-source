@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.animeextension.pt.anikyuu
 import android.util.Log
 import eu.kanade.tachiyomi.animeextension.pt.anikyuu.extractors.EmTurboExtractor
 import eu.kanade.tachiyomi.animesource.model.Video
+import eu.kanade.tachiyomi.lib.abyssextractor.AbyssExtractor
 import eu.kanade.tachiyomi.lib.filemoonextractor.FilemoonExtractor
 import eu.kanade.tachiyomi.lib.hashvideoidextractor.HashVideoIdExtractor
 import eu.kanade.tachiyomi.multisrc.animestream.AnimeStream
@@ -25,14 +26,17 @@ class Anikyuu : AnimeStream(
     private val filemoonExtractor by lazy { FilemoonExtractor(client) }
     private val emTurboExtractor by lazy { EmTurboExtractor(client, headers) }
     private val hashVideoIdExtractor by lazy { HashVideoIdExtractor(client) }
+    private val abyssExtractor by lazy { AbyssExtractor(client) }
 
     override fun getVideoList(url: String, name: String): List<Video> {
         Log.d(tag, "Fetching videos from: $url")
 
+        val mirror = name.lowercase()
+
         return when {
-            "filemoon" in url -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
-            "byselapuix" in url -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
+            "filemoon" in mirror -> filemoonExtractor.videosFromUrl(url, headers = headers, referer = baseUrl)
             "turbo" in url -> emTurboExtractor.getVideos(url)
+            "abyss" in mirror -> abyssExtractor.videosFromUrl(url, headers)
             "/#" in url -> hashVideoIdExtractor.videosFromUrl(url, headers)
 
             else -> emptyList()
