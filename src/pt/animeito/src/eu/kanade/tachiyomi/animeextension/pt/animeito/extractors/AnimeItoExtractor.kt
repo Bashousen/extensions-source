@@ -15,7 +15,11 @@ class AnimeItoExtractor(private val client: OkHttpClient, private val headers: H
     private val m3u8Integration by lazy { M3u8Integration(client) }
 
     fun videosFromUrl(url: String): List<Video> {
-        val playerDoc = client.newCall(GET(url, headers)).execute().asJsoup()
+        val newHeaders = headers.newBuilder()
+            .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+            .build()
+
+        val playerDoc = client.newCall(GET(url, newHeaders)).execute().asJsoup()
         val encodedScript = playerDoc.selectFirst("[type=\"text/javascript\"]:nth-child(3)")
             ?.data() ?: return emptyList()
 
